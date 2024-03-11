@@ -91,8 +91,15 @@ public class CopilotAuditEventManager
 
     public async Task CommitAllChanges()
     {
-        await _spCopilotInserts.SaveToStagingTable(Properties.Resources.insert_sp_copilot_events_from_staging_table);
-        await _teamsCopilotInserts.SaveToStagingTable(Properties.Resources.insert_teams_copilot_events_from_staging_table);
+        var docsMergeSql = Properties.Resources.insert_sp_copilot_events_from_staging_table
+            .Replace(ActivityImportConstants.STAGING_TABLE_VARNAME, 
+            ActivityImportConstants.STAGING_TABLE_COPILOT_SP);
+        var teamsMergeSql = Properties.Resources.insert_teams_copilot_events_from_staging_table
+            .Replace(ActivityImportConstants.STAGING_TABLE_VARNAME, 
+            ActivityImportConstants.STAGING_TABLE_COPILOT_TEAMS);
+        
+        await _spCopilotInserts.SaveToStagingTable(docsMergeSql);
+        await _teamsCopilotInserts.SaveToStagingTable(teamsMergeSql);
     }
 }
 

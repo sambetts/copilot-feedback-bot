@@ -84,7 +84,7 @@ namespace ActivityImporter.Engine.Properties {
         /// <summary>
         ///   Looks up a localized string similar to INSERT INTO urls(full_url)
         ///	SELECT distinct imports.url 
-        ///	FROM [debug_import_staging_copilot_sp] imports
+        ///	FROM [${STAGING_TABLE_ACTIVITY}] imports
         ///	left join 
         ///		urls on urls.full_url = imports.url
         ///	where 
@@ -93,12 +93,12 @@ namespace ActivityImporter.Engine.Properties {
         ///
         ///INSERT INTO sites(url_base)
         ///	SELECT distinct imports.url_base 
-        ///	FROM [debug_import_staging_copilot_sp] imports
+        ///	FROM [${STAGING_TABLE_ACTIVITY}] imports
         ///	left join 
         ///		sites on sites.url_base = imports.url_base
         ///	where 
         ///		imports.url_base is not null AND 
-        ///		not exists(select top 1 url_base from site [rest of string was truncated]&quot;;.
+        ///		not exists(select top 1 url_base from sites where url_ [rest of string was truncated]&quot;;.
         /// </summary>
         internal static string insert_sp_copilot_events_from_staging_table {
             get {
@@ -109,7 +109,7 @@ namespace ActivityImporter.Engine.Properties {
         /// <summary>
         ///   Looks up a localized string similar to INSERT INTO online_meetings(created, meeting_id, name)
         ///	SELECT distinct meeting_created_utc, imports.meeting_id, imports.meeting_name 
-        ///	FROM debug_import_staging_copilot_teams imports
+        ///	FROM ${STAGING_TABLE_ACTIVITY} imports
         ///	left join 
         ///		online_meetings on online_meetings.meeting_id = imports.meeting_id
         ///	where 
@@ -119,7 +119,7 @@ namespace ActivityImporter.Engine.Properties {
         ///				and imports.meeting_name = [name]
         ///		)
         ///
-        ///insert into eve [rest of string was truncated]&quot;;.
+        ///insert into event_meta_c [rest of string was truncated]&quot;;.
         /// </summary>
         internal static string insert_teams_copilot_events_from_staging_table {
             get {

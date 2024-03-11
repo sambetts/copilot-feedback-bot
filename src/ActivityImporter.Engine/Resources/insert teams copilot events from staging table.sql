@@ -1,6 +1,6 @@
 INSERT INTO online_meetings(created, meeting_id, name)
 	SELECT distinct meeting_created_utc, imports.meeting_id, imports.meeting_name 
-	FROM debug_import_staging_copilot_teams imports
+	FROM ${STAGING_TABLE_ACTIVITY} imports
 	left join 
 		online_meetings on online_meetings.meeting_id = imports.meeting_id
 	where 
@@ -14,7 +14,7 @@ insert into event_meta_copilot_meetings (event_id, meeting_id, app_host)
 	SELECT imports.event_id
 		  ,online_meetings.id as meetingId
 		  ,app_host
-	  FROM debug_import_staging_copilot_teams imports
+	  FROM ${STAGING_TABLE_ACTIVITY} imports
 	  inner join online_meetings on online_meetings.meeting_id = imports.meeting_id
 		and online_meetings.name = imports.meeting_name
 		and online_meetings.created = imports.meeting_created_utc

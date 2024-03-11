@@ -18,6 +18,7 @@ public static class ActivityImportConstants
     public static string COPILOT_CONTEXT_TYPE_TEAMSMEETING { get { return "TeamsMeeting"; } }
     public static string[] ACTIVITY_CONTENT_TYPES { get { return ["Audit.SharePoint", "Audit.General"]; } }
 
+    public const string STAGING_TABLE_VARNAME = "${STAGING_TABLE_ACTIVITY}";
 
 #if DEBUG
 
