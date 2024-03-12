@@ -39,8 +39,9 @@ jobs:
       uses: actions/upload-artifact@v3
       with:
         name: webjobandweb
-        path: ${{ env.AZURE_WEBAPP_PACKAGE_PATH_WEB }}
-              ${{ env.AZURE_WEBAPP_PACKAGE_PATH_WEBJOB }}
+        path: | 
+            ${{ env.AZURE_WEBAPP_PACKAGE_PATH_WEB }}
+            ${{ env.AZURE_WEBAPP_PACKAGE_PATH_WEBJOB }}
   deploy:
     runs-on: windows-latest
     needs: build
