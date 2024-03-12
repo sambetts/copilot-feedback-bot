@@ -32,6 +32,9 @@ IF NOT DEFINED DEPLOYMENT_SOURCE (
 IF NOT DEFINED DEPLOYMENT_TARGET (
   SET DEPLOYMENT_TARGET=%ARTIFACTS%\wwwroot
 )
+IF NOT DEFINED DEPLOYMENT_TARGET_WEBJOB (
+  SET DEPLOYMENT_TARGET_WEBJOB=%ARTIFACTS%\wwwroot\app_data\Jobs\Triggered\ActivityImporter.ConsoleApp
+)
 
 IF NOT DEFINED NEXT_MANIFEST_PATH (
   SET NEXT_MANIFEST_PATH=%ARTIFACTS%\manifest
@@ -79,14 +82,25 @@ echo Building the application
 call :ExecuteCmd dotnet publish "%DEPLOYMENT_SOURCE%\src\src\Web\Web.csproj" --output "%DEPLOYMENT_TEMP%" --configuration Release -property:KuduDeployment=1
 IF !ERRORLEVEL! NEQ 0 goto error
 
-:: Build and publish WebJob
-:: echo Building the Webjob
-:: call :ExecuteCmd dotnet publish "%DEPLOYMENT_SOURCE%\src\src\ActivityImporter.ConsoleApp\ActivityImporter.ConsoleApp.csproj" --output "%DEPLOYMENT_TEMP%" --configuration Release -property:KuduDeployment=1
-:: IF !ERRORLEVEL! NEQ 0 goto error
-
-:: 5. KuduSync
+:: KuduSync
 call :ExecuteCmd "%KUDU_SYNC_CMD%" -v 50 -f "%DEPLOYMENT_TEMP%" -t "%DEPLOYMENT_TARGET%" -n "%NEXT_MANIFEST_PATH%" -p "%PREVIOUS_MANIFEST_PATH%" -i ".git;.hg;.deployment;deploy.cmd"
 IF !ERRORLEVEL! NEQ 0 goto error
+
+::Clean
+rd /s /q "%DEPLOYMENT_TEMP%"
+mkdir "%DEPLOYMENT_TEMP%"
+IF EXIST "%DEPLOYMENT_TARGET_WEBJOB%" rd /s /q "%DEPLOYMENT_TARGET_WEBJOB%"
+  mkdir "%DEPLOYMENT_TARGET_WEBJOB%"
+
+:: Build and publish WebJob
+echo Building the Webjob
+call :ExecuteCmd dotnet publish "%DEPLOYMENT_SOURCE%\src\src\ActivityImporter.ConsoleApp\ActivityImporter.ConsoleApp.csproj" --output "%DEPLOYMENT_TEMP%" --configuration Release -property:KuduDeployment=1
+IF !ERRORLEVEL! NEQ 0 goto error
+
+:: KuduSync
+call :ExecuteCmd "%KUDU_SYNC_CMD%" -v 50 -f "%DEPLOYMENT_TEMP%" -t "%DEPLOYMENT_TARGET_WEBJOB%" -n "%NEXT_MANIFEST_PATH%" -p "%PREVIOUS_MANIFEST_PATH%" -i ".git;.hg;.deployment;deploy.cmd"
+IF !ERRORLEVEL! NEQ 0 goto error
+
 
 ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 goto end
