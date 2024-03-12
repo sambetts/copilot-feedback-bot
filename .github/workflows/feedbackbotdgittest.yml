@@ -1,16 +1,15 @@
-name: Build and deploy .NET Core application to Web App stored in secret feedbackbot_AZURE_WEBAPP_NAME using profile in 
+name: Build and deploy .NET Core application to Web App stored in secret feedbackbot_AZURE_WEBAPP_NAME using profile
 on:
   push:
     branches:
     - main
 env:
   AZURE_WEBAPP_PACKAGE_PATH_WEB: Web\publish
-  AZURE_WEBAPP_PACKAGE_PATH_WEBJOB: WebJob\publish
+  AZURE_WEBAPP_PACKAGE_PATH_WEBJOB: WebJob\publish\app_data\Jobs\Triggered\ActivityImporter.ConsoleApp
   CONFIGURATION: Release
   DOTNET_CORE_VERSION: 8.0.x
   WORKING_DIRECTORY_WEB: src\Web
   WORKING_DIRECTORY_WEBJOB: src\ActivityImporter.ConsoleApp
-  BINARIES: 'wwwroot\app_data\Jobs\Triggered\ActivityImporter.ConsoleApp' # the last folder name will become the webjob name in the portal
 jobs:
   build:
     runs-on: windows-latest
