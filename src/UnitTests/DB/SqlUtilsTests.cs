@@ -1,15 +1,12 @@
 using Common.DataUtils.Sql;
 using Common.DataUtils.Sql.Inserts;
-using Entities.DB;
 using Microsoft.EntityFrameworkCore;
 
 namespace UnitTests.DB;
 
 [TestClass]
-public class EFInsertBatchTests : AbstractTest
+public class SqlUtilsTests : AbstractTest
 {
-    #region InsertBatchTests
-
     const string TABLE_NAME = "tmp_whatever";
     const string TEMP_TABLE_NAME = "##tmp_whatever";
     [TestMethod]
@@ -26,8 +23,8 @@ public class EFInsertBatchTests : AbstractTest
         Assert.IsTrue(emptyResult == 0);
 
         // Save with data
-        var testObject = new TestMultiPropTypeTempEntity();     // Use class defaults
-        batch.Rows.Add(testObject);
+        batch.Rows.Add(new TestMultiPropTypeTempEntity());// Use class defaults
+        batch.Rows.Add(new TestMultiPropTypeTempEntity { NullableIntProp = 1 });
         await batch.SaveToStagingTable($"select * from {TABLE_NAME}");
 
         // Verify saved data
@@ -38,7 +35,7 @@ public class EFInsertBatchTests : AbstractTest
         selectCmd.CommandText = $"select * from {TABLE_NAME}";
         var results = await selectCmd.ExecuteReaderAsync();
 
-        // Single record
+        // x2 records
         int count = 0;
         while (results.Read())
         {
@@ -48,7 +45,7 @@ public class EFInsertBatchTests : AbstractTest
                 var sqlFieldResult = results[pi.SqlInfo.FieldName];
                 Assert.IsNotNull(sqlFieldResult);
 
-                var objectVal = pi.Property.GetValue(testObject);
+                var objectVal = pi.Property.GetValue(batch.Rows[count]);
                 if (sqlFieldResult is double)
                 {
                     if (pi.Property.PropertyType == typeof(double))
@@ -77,10 +74,9 @@ public class EFInsertBatchTests : AbstractTest
             }
             count++;
         }
-        await conn.CloseAsync();
 
         Assert.IsTrue(count == batch.Rows.Count);
-
+        conn.Close();
 
         // Temp table tests
         var batchTemp = new InsertBatch<TestTempEntityTempTable>(_config.ConnectionStrings.SQL, _logger);
@@ -98,9 +94,7 @@ public class EFInsertBatchTests : AbstractTest
         // Can't verify saved data as temp table will be closed
         Assert.IsTrue(tempUpdates == batchTemp.Rows.Count);
 
-
     }
-
     [TempTableName(TABLE_NAME)]
     class TestMultiPropTypeTempEntity
     {
@@ -110,11 +104,20 @@ public class EFInsertBatchTests : AbstractTest
         [Column("prop")]
         public string Prop { get; set; } = "Whatever";
 
-        [Column("nullprop")]
+        /// <summary>
+        /// Specifically override the nullability of this property
+        /// </summary>
+        [Column("nullstringprop", true)]
         public string NullProp { get; set; } = null!;
 
         [Column("intprop")]
         public int IntProp { get; set; } = 1;
+
+        /// <summary>
+        /// This should automatically be nullable without needing to specify it in the attribute
+        /// </summary>
+        [Column("nullable_intprop")]
+        public int? NullableIntProp { get; set; } = null;
 
         [Column("floatprop")]
         public float FloatProp { get; set; } = 1.001f;
@@ -138,7 +141,4 @@ public class EFInsertBatchTests : AbstractTest
         [Column("prop")]
         public string Prop { get; set; } = null!;
     }
-
-    #endregion
-
 }
