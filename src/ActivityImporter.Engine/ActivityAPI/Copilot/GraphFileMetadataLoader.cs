@@ -37,7 +37,7 @@ public class GraphFileMetadataLoader : ICopilotMetadataLoader
     {
         var siteUrl = StringUtils.GetSiteUrl(copilotDocContextId);
         if (siteUrl == null) throw new ArgumentException("Invalid copilotDocContextId");
-        
+
         Drive? drive;
         if (StringUtils.IsMySiteUrl(siteUrl))
         {
@@ -81,7 +81,7 @@ public class GraphFileMetadataLoader : ICopilotMetadataLoader
                 _logger.LogWarning(ex, "Error getting file info for copilotDocContextId {copilotDocContextId}", copilotDocContextId);
                 return null;
             }
-            
+
 
             return new SpoDocumentFileInfo(item, site);
         }

@@ -10,9 +10,9 @@ public class SurveyInitialResponse
     /// <summary>
     /// Parse the rating into a response
     /// </summary>
-    public BotInitialReply? Response 
-    { 
-        get 
+    public BotInitialReply? Response
+    {
+        get
         {
             var r = new BotInitialReply();
             if (Rating == BotConstants.SurveyAnswerRating1)
@@ -47,7 +47,7 @@ public class SurveyInitialResponse
                 return null;
             }
             return r;
-        } 
+        }
     }
     public class BotInitialReply
     {

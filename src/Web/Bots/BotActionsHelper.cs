@@ -1,6 +1,5 @@
 ﻿using Common.Engine.Config;
 using Microsoft.Bot.Builder;
-using Microsoft.Bot.Builder.Dialogs;
 using Web.Bots.Cards;
 
 namespace Web.Bots;

@@ -47,7 +47,7 @@ public class InsertBatchTypeFieldCache<T>
                         fieldInfo.SqlColDefinition = fileColName;
                         fieldInfo.Nullable = attribute.Nullable ? true : propTypeIsNullable;
                         fieldInfo.SqlType = SqlHelper.GetDbType(property.PropertyType);
-                        _fieldInfoPropertyInfoCache.Add(new InsertBatchPropertyMapping (property, fieldInfo));
+                        _fieldInfoPropertyInfoCache.Add(new InsertBatchPropertyMapping(property, fieldInfo));
                     }
                 }
             }
@@ -101,7 +101,7 @@ public class InsertBatchPropertyMapping
         SqlInfo = sqlInfo;
     }
 
-    public PropertyInfo Property { get; set; } 
+    public PropertyInfo Property { get; set; }
     public ColumnSqlInfo SqlInfo { get; set; }
 
     public override string ToString()

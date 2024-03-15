@@ -1,5 +1,4 @@
 ﻿using ActivityImporter.Engine.ActivityAPI.Models;
-using Common.DataUtils.Sql;
 using Common.DataUtils.Sql.Inserts;
 using Common.Engine.Config;
 using Entities.DB;

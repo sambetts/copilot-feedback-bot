@@ -54,7 +54,7 @@ public class DbInitialiser
 
 #if DEBUG
                 DirtyTestDataHackInserts(context, logger, editDoc, getHighlights);
-                
+
 #endif
                 await context.SaveChangesAsync();
             }
@@ -124,7 +124,7 @@ public class DbInitialiser
                 };
 
         var allMeetingEvents = new List<CopilotEventMetadataMeeting>();     // Needed for when we just add teams event feedback, so we don't have exactly 50-50 meetings and files
-        
+
         foreach (var m in meetingNames)
         {
             var testMeetingEvent = new CopilotEventMetadataMeeting
@@ -198,14 +198,14 @@ public class DbInitialiser
         // Add some "very happy" fake survey responses for meetings and documents. Use Teams events for the feedback
         for (int i = 0; i < 10; i++)
         {
-            AddMeetingAndFileEvent(DateTime.Now, i, 4, 5, context, allUsers, rnd, editDocCopilotActivity, getHighlightsCopilotActivity, "Very happy", 
+            AddMeetingAndFileEvent(DateTime.Now, i, 4, 5, context, allUsers, rnd, editDocCopilotActivity, getHighlightsCopilotActivity, "Very happy",
                 allMeetingEvents[rnd.Next(0, allMeetingEvents.Count - 1)].Event);
         }
     }
 
     static List<SPEventFileExtension> _sPEventFileExtensions = new List<SPEventFileExtension>();
     static SPEventFileExtension GetSPEventFileExtension(string ext)
-    { 
+    {
         var e = _sPEventFileExtensions.FirstOrDefault(e => e.Name == ext);
         if (e == null)
         {

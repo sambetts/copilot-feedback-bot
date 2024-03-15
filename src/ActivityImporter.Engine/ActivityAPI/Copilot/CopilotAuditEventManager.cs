@@ -92,12 +92,12 @@ public class CopilotAuditEventManager
     public async Task CommitAllChanges()
     {
         var docsMergeSql = Properties.Resources.insert_sp_copilot_events_from_staging_table
-            .Replace(ActivityImportConstants.STAGING_TABLE_VARNAME, 
+            .Replace(ActivityImportConstants.STAGING_TABLE_VARNAME,
             ActivityImportConstants.STAGING_TABLE_COPILOT_SP);
         var teamsMergeSql = Properties.Resources.insert_teams_copilot_events_from_staging_table
-            .Replace(ActivityImportConstants.STAGING_TABLE_VARNAME, 
+            .Replace(ActivityImportConstants.STAGING_TABLE_VARNAME,
             ActivityImportConstants.STAGING_TABLE_COPILOT_TEAMS);
-        
+
         await _spCopilotInserts.SaveToStagingTable(docsMergeSql);
         await _teamsCopilotInserts.SaveToStagingTable(teamsMergeSql);
     }

@@ -1,7 +1,6 @@
 ﻿using Common.Engine;
 using Common.Engine.Config;
 using Common.Engine.Notifications;
-using Common.Engine.Surveys;
 using Entities.DB.Entities.AuditLog;
 using Microsoft.Bot.Builder;
 using Microsoft.Bot.Builder.Dialogs;
