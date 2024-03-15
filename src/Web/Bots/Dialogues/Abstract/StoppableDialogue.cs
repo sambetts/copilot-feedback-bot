@@ -2,6 +2,7 @@
 using Common.Engine.Config;
 using Microsoft.Bot.Builder.Dialogs;
 using Microsoft.Bot.Schema;
+using Microsoft.Graph;
 
 namespace Web.Bots.Dialogues.Abstract;
 
@@ -10,8 +11,8 @@ namespace Web.Bots.Dialogues.Abstract;
 /// </summary>
 public abstract class StoppableDialogue : CommonBotDialogue
 {
-    protected StoppableDialogue(string id, BotConversationCache botConversationCache, BotConfig botConfig, IServiceProvider services)
-        : base(id, botConversationCache, botConfig, services)
+    protected StoppableDialogue(string id, BotConversationCache botConversationCache, BotConfig botConfig, IServiceProvider services, GraphServiceClient graphServiceClient)
+        : base(id, botConversationCache, botConfig, services, graphServiceClient)
     {
     }
 

@@ -4,6 +4,7 @@ using Common.Engine.Surveys;
 using Microsoft.Bot.Builder;
 using Microsoft.Bot.Builder.Dialogs;
 using Microsoft.Bot.Builder.Dialogs.Choices;
+using Microsoft.Graph;
 using Web.Bots.Dialogues.Abstract;
 
 namespace Web.Bots.Dialogues;
@@ -21,8 +22,8 @@ public class StopBotheringMeDialogue : CommonBotDialogue
     /// Setup dialogue flow
     /// </summary>
     public StopBotheringMeDialogue(BotConfig configuration, BotConversationCache botConversationCache, ILogger<StopBotheringMeDialogue> tracer,
-        UserState userState, IServiceProvider services)
-        : base(nameof(StopBotheringMeDialogue), botConversationCache, configuration, services)
+        UserState userState, IServiceProvider services, GraphServiceClient graphServiceClient)
+        : base(nameof(StopBotheringMeDialogue), botConversationCache, configuration, services, graphServiceClient)
     {
         _tracer = tracer;
         AddDialog(new TextPrompt(nameof(TextPrompt)));
@@ -60,18 +61,25 @@ public class StopBotheringMeDialogue : CommonBotDialogue
         var response = (FoundChoice)stepContext.Result;
         if (response.Value == BTN_YES)
         {
-            var chatUserUpn = await base.GetChatUserUPN(stepContext) ?? throw new ArgumentNullException(nameof(stepContext.Context.Activity.From.AadObjectId));
-            SurveyPendingActivities? userPendingEvents = null;
-            await base.GetSurveyManagerService(async surveyManager =>
+            var botUser = await BotUserUtils.GetBotUserAsync(stepContext.Context, _botConfig, _graphServiceClient);
+            var chatUser = await base.GetCachedUser(botUser);
+            if (chatUser != null && chatUser.UserPrincipalName != null)
             {
-                userPendingEvents = await base.GetSurveyPendingActivities(surveyManager, chatUserUpn);
-            });
+                SurveyPendingActivities? userPendingEvents = null;
+                await base.GetSurveyManagerService(async surveyManager =>
+                {
+                    userPendingEvents = await base.GetSurveyPendingActivities(surveyManager, chatUser.UserPrincipalName);
+                });
 
+                // Register survey request sent so we don't repeatedly ask for the same event
+                await base.GetSurveyManagerService(async surveyManager => await surveyManager.Loader.StopBotheringUser(chatUser.UserPrincipalName, DateTime.MaxValue));
 
-            // Register survey request sent so we don't repeatedly ask for the same event
-            await base.GetSurveyManagerService(async surveyManager => await surveyManager.Loader.StopBotheringUser(chatUserUpn, DateTime.MaxValue));
-
-            await SendMsg(stepContext.Context, "Bye then 😞. You can always say hi, and I'll always respond if I can ♥️");
+                await SendMsg(stepContext.Context, "Bye then 😞. You can always say hi, and I'll always respond if I can ♥️");
+            }
+            else
+            {
+                await SendMsg(stepContext.Context, "Ooops, looks like I can't find your UPN to save your request. Are you a guest user?");
+            }
         }
         else
         {

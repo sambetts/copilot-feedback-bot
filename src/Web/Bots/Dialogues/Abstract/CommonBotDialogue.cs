@@ -1,37 +1,55 @@
 ﻿using Common.Engine;
 using Common.Engine.Config;
 using Common.Engine.Surveys;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Bot.Builder;
 using Microsoft.Bot.Builder.Dialogs;
 using Microsoft.Bot.Schema;
+using Microsoft.Graph;
+using System.Text.Json;
+using Web.Bots.Cards;
 
 namespace Web.Bots.Dialogues.Abstract;
 
 public abstract class CommonBotDialogue : ComponentDialog
 {
     protected readonly BotConversationCache _botConversationCache;
-    private readonly BotConfig _botConfig;
+    protected readonly BotConfig _botConfig;
     protected readonly IServiceProvider _services;
+    protected readonly GraphServiceClient _graphServiceClient;
 
-    public CommonBotDialogue(string id, BotConversationCache botConversationCache, BotConfig botConfig, IServiceProvider services)
+    public CommonBotDialogue(string id, BotConversationCache botConversationCache, BotConfig botConfig, IServiceProvider services, GraphServiceClient graphServiceClient)
         : base(id)
     {
         _botConversationCache = botConversationCache;
         _botConfig = botConfig;
         _services = services;
+        _graphServiceClient = graphServiceClient;
     }
 
-
-    protected async Task<string?> GetChatUserUPN(WaterfallStepContext stepContext)
+    protected async Task<CachedUserAndConversationData?> GetCachedUser(BotUser botUser)
     {
         await _botConversationCache.PopulateMemCacheIfEmpty();
 
-        var chatUser = _botConversationCache.GetCachedUser(stepContext.Context.Activity.From.AadObjectId);
-        if (chatUser == null)
+        var chatUser = _botConversationCache.GetCachedUser(botUser.UserId);
+        return chatUser;
+    }
+
+    protected SurveyInitialResponse? GetFrom(string? text)
+    {
+        SurveyInitialResponse? surveyInitialResponse = null;
+        if (text != null)
         {
-            return _botConfig.TestUPN;
+            try
+            {
+                surveyInitialResponse = JsonSerializer.Deserialize<SurveyInitialResponse>(text);
+            }
+            catch (JsonException)
+            {
+                // Ignore
+            }
         }
-        return chatUser?.UserPrincipalName;
+        return surveyInitialResponse;
     }
 
 

@@ -24,5 +24,5 @@ public class CachedUserAndConversationData : ITableEntity
     public string ServiceUrl { get; set; } = null!;
 
     public string ConversationId { get; set; } = null!;
-    public string UserPrincipalName { get; set; } = null!;
+    public string? UserPrincipalName { get; set; } = null;
 }

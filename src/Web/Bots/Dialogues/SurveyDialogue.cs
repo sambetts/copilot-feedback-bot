@@ -1,11 +1,13 @@
 ﻿using Common.Engine;
 using Common.Engine.Config;
+using Common.Engine.Notifications;
 using Common.Engine.Surveys;
 using Entities.DB.Entities.AuditLog;
 using Microsoft.Bot.Builder;
 using Microsoft.Bot.Builder.Dialogs;
 using Microsoft.Bot.Builder.Dialogs.Choices;
 using Microsoft.Bot.Schema;
+using Microsoft.Graph;
 using System.Text.Json;
 using Web.Bots.Cards;
 using Web.Bots.Dialogues.Abstract;
@@ -18,8 +20,9 @@ namespace Web.Bots.Dialogues;
 public class SurveyDialogue : StoppableDialogue
 {
     private readonly ILogger<SurveyDialogue> _tracer;
+    private readonly BotActionsHelper _botActionsHelper;
     private readonly UserState _userState;
-
+    private readonly IConversationResumeHandler _conversationResumeHandler;
     const string CACHE_NAME_NEXT_ACTION = "NextAction";
     const string BTN_SEND_SURVEY = "Go on then";
 
@@ -27,11 +30,14 @@ public class SurveyDialogue : StoppableDialogue
     /// Setup dialogue flow
     /// </summary>
     public SurveyDialogue(StopBotheringMeDialogue stopBotheringMeDialogue, BotConfig configuration, BotConversationCache botConversationCache, ILogger<SurveyDialogue> tracer,
-        UserState userState, IServiceProvider services)
-        : base(nameof(SurveyDialogue), botConversationCache, configuration, services)
+        BotActionsHelper botActionsHelper,
+        UserState userState, IServiceProvider services, GraphServiceClient graphServiceClient, IConversationResumeHandler conversationResumeHandler)
+        : base(nameof(SurveyDialogue), botConversationCache, configuration, services, graphServiceClient)
     {
         _tracer = tracer;
+        _botActionsHelper = botActionsHelper;
         _userState = userState;
+        _conversationResumeHandler = conversationResumeHandler;
         AddDialog(new TextPrompt(nameof(TextPrompt)));
         AddDialog(stopBotheringMeDialogue);
 
@@ -55,53 +61,49 @@ public class SurveyDialogue : StoppableDialogue
         if (cancel != null)
             return cancel;
 
-        var chatUserUpn = await base.GetChatUserUPN(stepContext);
-
-        if (chatUserUpn == null)
+        // Get cached user and conversation. We do it here too in case the conversation cache has been cleared.
+        var botUser = await BotUserUtils.GetBotUserAsync(stepContext.Context, _botConfig, _graphServiceClient);
+        var cachedUserAndConversation = await base.GetCachedUser(botUser);
+        if (cachedUserAndConversation == null || cachedUserAndConversation.UserPrincipalName == null)
         {
             // This may be the first time we've met this user if they've spoken to the bot, but the conversation cache has been cleared.
             // Add them to the cache and try again.
-            if (stepContext.Context?.Activity?.From?.AadObjectId != null)
-            {
-                await base._botConversationCache.AddConversationReferenceToCache(stepContext.Context.Activity);
-                chatUserUpn = await base.GetChatUserUPN(stepContext);
-            }
+            await base._botConversationCache.AddConversationReferenceToCache(stepContext.Context.Activity, botUser);
+            cachedUserAndConversation = await base.GetCachedUser(botUser);
 
             // Now we've tried to add their user to the conversation cache, check again
-            if (chatUserUpn == null)
+            if (cachedUserAndConversation == null || cachedUserAndConversation.UserPrincipalName == null)
             {
-                // Not a Teams user. End the conversation.
+                // Should never happen. End the conversation.
                 await SendMsg(stepContext.Context!,
-                    "Hi, Teams User. For some reason I can't find you in our chat history, which is very odd. " +
-                    "It looks like I can't do much without this.");
+                    "For some reason I can't find your login name in our chat history, which is very odd. Are you a guest? " +
+                    "It looks like I can't do much without this so, bye!");
                 return await stepContext.EndDialogAsync();
             }
         }
 
-        // Are we in this diag from a response to the initial introduction card button?
-        // Initial introduction card is sent when bot meets a new user for the 1st time in a new thread. 
         var prevActionText = stepContext.Context?.Activity?.Text;
-        if (prevActionText == "{}" || prevActionText == "Start Survey")              // In teams, this is empty JSon for some reason, unlike in Bot Framework SDK client
 
+        // Figure out why we're here
+        var surveyInitialResponse = GetFrom(stepContext.Context?.Activity?.Text);
+        if (surveyInitialResponse != null)
+        {
+            // User has responded to the initial survey card probably from the bot new thread event, so we can skip the intro card
+            return await stepContext.NextAsync(surveyInitialResponse);
+        }
+
+        if (prevActionText == "{}" || prevActionText == "Start Survey")              // In teams, this is empty JSon for some reason, unlike in Bot Framework SDK client
+        {
             // User starts the dialogue with "start survey", probably from the intro card.
             return await stepContext.NextAsync(new FoundChoice() { Value = BTN_SEND_SURVEY });
+        }
         else
         {
-            // We're here because the user said something to the bot outside this dialogue flow.
+            // We're here because the user said something to the bot outside this dialogue flow, and it wasn't a response to the intro card.
             // Probably because they said "sup" or something to us, randomly
-
-            // "Hi I'm bot..."
-            var introCardAttachment = new BotResumeConversationIntroduction(BotConstants.BotName).GetCardAttachment();
-            await stepContext.Context!.SendActivityAsync(MessageFactory.Attachment(introCardAttachment));
-
-            return await stepContext.PromptAsync(nameof(ChoicePrompt), new PromptOptions
-            {
-                Prompt = BuildMsg("Want to fill out a survey?"),
-                Choices = new List<Choice>() {
-                    new Choice() { Value = BTN_SEND_SURVEY, Synonyms = new List<string>() { "Yes", "Do it", "Send" } },
-                    new Choice() { Value = "Nah", Synonyms = new List<string>() { "No", "Stop", "Abort" } }
-                }
-            }, cancellationToken);
+            var nextActionAndResumeCard = await _conversationResumeHandler.GetProactiveConversationResumeConversationCard(cachedUserAndConversation.UserPrincipalName);
+            var opts = new PromptOptions { Prompt = new Activity { Attachments = new List<Attachment>() { nextActionAndResumeCard.Item2 }, Type = ActivityTypes.Message } };
+            return await stepContext.PromptAsync(nameof(TextPrompt), opts);
         }
     }
 
@@ -110,64 +112,43 @@ public class SurveyDialogue : StoppableDialogue
     /// </summary>
     private async Task<DialogTurnResult> SendSurveyOrNot(WaterfallStepContext stepContext, CancellationToken cancellationToken)
     {
-        var response = (FoundChoice)stepContext.Result;
-        if (response != null)
+        if (stepContext.Result is SurveyInitialResponse surveyInitialResponse)
+        {
+            // User has responded to the initial survey card outside of the dialogue (bot new thread event probably).
+            return await stepContext.NextAsync(surveyInitialResponse);
+        }
+        else if (stepContext.Result is string resultString)
+        {
+            // Response survey sent by previous step
+            var suveyResponse = GetFrom(resultString);
+            if (suveyResponse != null)
+            {
+                return await stepContext.NextAsync(stepContext.Result);
+            }
+        }
+        else if (stepContext.Result is FoundChoice response)
         {
             if (response.Value == BTN_SEND_SURVEY)
             {
-                var chatUserUpn = await base.GetChatUserUPN(stepContext) ?? throw new ArgumentNullException(nameof(stepContext.Context.Activity.From.AadObjectId));
-                SurveyPendingActivities? userPendingEvents = null;
-                await base.GetSurveyManagerService(async surveyManager =>
+                var botUser = await BotUserUtils.GetBotUserAsync(stepContext.Context, _botConfig, _graphServiceClient);
+                var chatUserAndConversation = await base.GetCachedUser(botUser);
+                if (chatUserAndConversation == null || chatUserAndConversation.UserPrincipalName == null)
                 {
-                    userPendingEvents = await base.GetSurveyPendingActivities(surveyManager, chatUserUpn);
-                });
-
-                // Send survey card
-                Attachment? surveyCard = null;
-
-                if (userPendingEvents != null)
-                {
-                    // Are there any pending events to be surveyed?
-                    if (userPendingEvents.IsEmpty)
-                    {
-                        // Send general survey card for no specific event
-                        surveyCard = new SurveyNotForSpecificAction().GetCardAttachment();
-                    }
-                    else
-                    {
-                        // Send feedback card for specific action
-                        var nextCopilotEvent = userPendingEvents.GetNext() ?? throw new ArgumentOutOfRangeException("Unexpected null next event");
-
-                        // Remember selected action
-                        await _userState.CreateProperty<BaseCopilotEvent>(CACHE_NAME_NEXT_ACTION).SetAsync(stepContext.Context, nextCopilotEvent);
-
-                        // Register survey request sent so we don't repeatedly ask for the same event
-                        await base.GetSurveyManagerService(async surveyManager => await surveyManager.Loader.LogSurveyRequested(nextCopilotEvent.Event));
-
-                        // Figure out what kind of event it is & what card to send
-                        if (nextCopilotEvent is CopilotEventMetadataFile)
-                        {
-                            surveyCard = new CopilotFileActionSurveyCard((CopilotEventMetadataFile)nextCopilotEvent).GetCardAttachment();
-                        }
-                        else if (nextCopilotEvent is CopilotEventMetadataMeeting)
-                        {
-                            surveyCard = new CopilotTeamsActionSurveyCard((CopilotEventMetadataMeeting)nextCopilotEvent).GetCardAttachment();
-                        }
-                        else
-                        {
-                            surveyCard = new SurveyNotForSpecificAction().GetCardAttachment();
-                        }
-                    }
-
-                    // Send survey card
-                    var opts = new PromptOptions { Prompt = new Activity { Attachments = new List<Attachment>() { surveyCard }, Type = ActivityTypes.Message } };
-                    return await stepContext.PromptAsync(nameof(TextPrompt), opts);
+                    throw new ArgumentNullException(nameof(stepContext.Context.Activity.From.AadObjectId));
                 }
-                else
+
+                var (nextCopilotEvent, surveyCard) = await _conversationResumeHandler.GetProactiveConversationResumeConversationCard(chatUserAndConversation.UserPrincipalName);
+
+                if (nextCopilotEvent != null)
                 {
-                    await SendMsg(stepContext.Context, "Oops, I can't find any survey data for you. Sorry about that.");
-                    return await stepContext.EndDialogAsync();
+                    // Remember selected copilot action user is being surveyed for
+                    await _userState.CreateProperty<BaseCopilotEvent>(CACHE_NAME_NEXT_ACTION).SetAsync(stepContext.Context, nextCopilotEvent);
+
+                    // Register survey request sent so we don't repeatedly ask for the same event
+                    await base.GetSurveyManagerService(async surveyManager => await surveyManager.Loader.LogSurveyRequested(nextCopilotEvent.Event));
                 }
+
+                return await stepContext.PromptAsync(nameof(TextPrompt), new PromptOptions { Prompt = new Activity { Attachments = new List<Attachment>() { surveyCard }, Type = ActivityTypes.Message } });
             }
             else
             {
@@ -175,11 +156,11 @@ public class SurveyDialogue : StoppableDialogue
                 return await stepContext.EndDialogAsync();
             }
         }
-        else
-        {
-            await SendMsg(stepContext.Context, "Oops, I wasn't expecting that response. Let's pretend this didn't happen...");
-            return await stepContext.EndDialogAsync();
-        }
+
+        // We're here because we don't know what the user is responding to
+        await SendMsg(stepContext.Context, "Oops, I wasn't expecting that response. Let's pretend this didn't happen...");
+        return await stepContext.EndDialogAsync();
+
     }
 
     /// <summary>
@@ -210,8 +191,9 @@ public class SurveyDialogue : StoppableDialogue
                 await stepContext.Context!.SendActivityAsync(MessageFactory.Attachment(responseCard.GetCardAttachment()));
 
                 // Save survey data?
-                var chatUserUpn = await base.GetChatUserUPN(stepContext);
-                if (string.IsNullOrEmpty(chatUserUpn))
+                var botUser = await BotUserUtils.GetBotUserAsync(stepContext.Context, _botConfig, _graphServiceClient);
+                var chatUserAndConvo = await base.GetCachedUser(botUser);
+                if (chatUserAndConvo == null || chatUserAndConvo.UserPrincipalName == null)
                     await SendMsg(stepContext.Context, "Oops, can't report feedback for anonymous users. Your login is needed even if we don't report on it. Thanks for letting me know anyway.");
                 else
                 {
@@ -227,7 +209,7 @@ public class SurveyDialogue : StoppableDialogue
                         else
                         {
                             // Log survey result for general survey
-                            int surveyId = await surveyManager.Loader.LogDisconnectedSurveyResult(parsedResponse.ScoreGiven, chatUserUpn);
+                            int surveyId = await surveyManager.Loader.LogDisconnectedSurveyResult(parsedResponse.ScoreGiven, chatUserAndConvo.UserPrincipalName);
                         }
                     });
                 }

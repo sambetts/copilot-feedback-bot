@@ -16,6 +16,7 @@ public class BotConvoResumeManager : IBotConvoResumeManager
     private readonly ILogger _loggerBotConvoResumeManager;
     private readonly ILogger<BotAppInstallHelper> _loggerBotAppInstallHelper;
     private readonly BotConversationCache _botConversationCache;
+    private readonly IConversationResumeHandler _conversationResumeHandler;
     private readonly GraphServiceClient _graphServiceClient;
     private readonly TeamsAppConfig _config;
     private readonly IBotFrameworkHttpAdapter _adapter;
@@ -23,11 +24,13 @@ public class BotConvoResumeManager : IBotConvoResumeManager
     public BotConvoResumeManager(ILogger<BotConvoResumeManager> loggerBotConvoResumeManager,
         ILogger<BotAppInstallHelper> loggerBotAppInstallHelper,
         BotConversationCache botConversationCache,
+        IConversationResumeHandler conversationResumeHandler,
         GraphServiceClient graphServiceClient, TeamsAppConfig config, IBotFrameworkHttpAdapter adapter)
     {
         _loggerBotConvoResumeManager = loggerBotConvoResumeManager;
         _loggerBotAppInstallHelper = loggerBotAppInstallHelper;
         _botConversationCache = botConversationCache;
+        _conversationResumeHandler = conversationResumeHandler;
         _graphServiceClient = graphServiceClient;
         _config = config;
         _adapter = adapter;
@@ -36,21 +39,21 @@ public class BotConvoResumeManager : IBotConvoResumeManager
     public async Task ResumeConversation(string upn)
     {
         // Get AAD user ID from Graph by looking up user by email
-        User? userObj = null;
+        User? graphUser = null;
         try
         {
-            userObj = await _graphServiceClient.Users[upn].GetAsync(op => op.QueryParameters.Select = ["Id"]);
+            graphUser = await _graphServiceClient.Users[upn].GetAsync(op => op.QueryParameters.Select = ["Id"]);
         }
         catch (ODataError ex)
         {
             _loggerBotConvoResumeManager.LogWarning($"Couldn't get user by UPN '{upn}' - {ex.Message}");
         }
-        if (userObj?.Id != null)
+        if (graphUser?.Id != null)
         {
             // Do we have a conversation with this user yet?
-            if (_botConversationCache.ContainsUserId(userObj.Id))
+            if (_botConversationCache.ContainsUserId(graphUser.Id))
             {
-                var cachedUser = _botConversationCache.GetCachedUser(userObj.Id)!;
+                var cachedUser = _botConversationCache.GetCachedUser(graphUser.Id)!;
                 var convoId = cachedUser.ConversationId;
 
                 var previousConversationReference = new ConversationReference()
@@ -61,16 +64,19 @@ public class BotConvoResumeManager : IBotConvoResumeManager
                     Conversation = new ConversationAccount() { Id = cachedUser.ConversationId },
                 };
 
-                // Continue conversation
-                var resumeMsg = "So I was wondering...";
-                var activity = MessageFactory.Text(resumeMsg, resumeMsg, InputHints.ExpectingInput);
+                // Continue conversation with the registered "resume conversation" service
+                var (nextCopilotEvent, surveyCard) = await _conversationResumeHandler.GetProactiveConversationResumeConversationCard(upn);
+
+                var resumeActivity = MessageFactory.Attachment(surveyCard);
+
                 await ((CloudAdapter)_adapter)
                     .ContinueConversationAsync(_config.AuthConfig.ClientId, previousConversationReference,
                     async (turnContext, cancellationToken) =>
-                        await turnContext.SendActivityAsync(activity, cancellationToken), CancellationToken.None);
+                        await turnContext.SendActivityAsync(resumeActivity, cancellationToken), CancellationToken.None);
             }
             else
             {
+                // No conversation with this user yet, so install the bot app for them
                 if (string.IsNullOrEmpty(_config.AppCatalogTeamAppId))
                 {
                     _loggerBotConvoResumeManager.LogError($"Can't install Teams app for bot - no {nameof(_config.AppCatalogTeamAppId)} found in configuration");
@@ -80,13 +86,13 @@ public class BotConvoResumeManager : IBotConvoResumeManager
                     var installManager = new BotAppInstallHelper(_loggerBotAppInstallHelper, _graphServiceClient);
                     try
                     {
-                        // Install app and if already installed, trigger a new conversation update
-                        await installManager.InstallBotForUser(userObj.Id, _config.AppCatalogTeamAppId,
-                            async () => await TriggerUserConversationUpdate(userObj.Id, _config.AppCatalogTeamAppId, installManager));
+                        // Install app and if already installed, trigger a new conversation update. This will then be picked up by the bot and the conversation ID then cached for this user.
+                        await installManager.InstallBotForUser(graphUser.Id, _config.AppCatalogTeamAppId,
+                            async () => await TriggerUserConversationUpdate(graphUser.Id, _config.AppCatalogTeamAppId, installManager));
                     }
                     catch (ODataError ex)
                     {
-                        _loggerBotConvoResumeManager.LogWarning($"Couldn't install Teams app for user '{userObj.Id}' - {ex.Message} - is user licensed for Teams?");
+                        _loggerBotConvoResumeManager.LogWarning($"Couldn't install Teams app for user '{graphUser.Id}' - {ex.Message} - is user licensed for Teams?");
                     }
                 }
             }

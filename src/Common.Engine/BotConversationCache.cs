@@ -9,8 +9,6 @@ namespace Common.Engine;
 
 public class BotConversationCache : TableStorageManager
 {
-    #region Privates & Constructors
-
     const string TABLE_NAME = "ConversationCache";
     private readonly GraphServiceClient _graphServiceClient;
     private ConcurrentDictionary<string, CachedUserAndConversationData> _userIdConversationCache = new();
@@ -18,18 +16,12 @@ public class BotConversationCache : TableStorageManager
     public BotConversationCache(GraphServiceClient graphServiceClient, AppConfig appConfig) : base(appConfig.ConnectionStrings.Storage)
     {
         _graphServiceClient = graphServiceClient;
-
         // Dev only: make sure the Azure Storage emulator is running or this will fail
     }
 
-    #endregion
-
     public async Task PopulateMemCacheIfEmpty()
     {
-        if (_userIdConversationCache.Count > 0)
-        {
-            return;
-        }
+        if (_userIdConversationCache.Count > 0) return;
 
         var client = await base.GetTableClient(TABLE_NAME);
         var queryResultsFilter = client.Query<CachedUserAndConversationData>(filter: $"PartitionKey eq '{CachedUserAndConversationData.PartitionKeyVal}'");
@@ -55,50 +47,46 @@ public class BotConversationCache : TableStorageManager
     /// <summary>
     /// App installed for user & now we have a conversation reference to cache for future chat threads.
     /// </summary>
-    public async Task AddConversationReferenceToCache(Activity activity)
+    public async Task AddConversationReferenceToCache(Activity activity, BotUser botUser)
     {
         var conversationReference = activity.GetConversationReference();
-        await AddOrUpdateUserAndConversationId(conversationReference, activity.ServiceUrl, _graphServiceClient);
+        await AddOrUpdateUserAndConversationId(conversationReference, botUser, activity.ServiceUrl, _graphServiceClient);
     }
 
-    internal async Task AddOrUpdateUserAndConversationId(ConversationReference conversationReference, string serviceUrl, GraphServiceClient graphClient)
+    internal async Task AddOrUpdateUserAndConversationId(ConversationReference conversationReference, BotUser botUser, string serviceUrl, GraphServiceClient graphClient)
     {
-        var cacheId = conversationReference.User.AadObjectId;
         CachedUserAndConversationData? u = null;
         var client = await base.GetTableClient(TABLE_NAME);
 
-        if (!_userIdConversationCache.TryGetValue(cacheId, out u))
+        if (!_userIdConversationCache.TryGetValue(botUser.UserId, out u))
         {
-
             // Have not got in memory cache
-
             Response<CachedUserAndConversationData>? entityResponse = null;
             try
             {
-                entityResponse = client.GetEntity<CachedUserAndConversationData>(CachedUserAndConversationData.PartitionKeyVal, cacheId);
+                entityResponse = client.GetEntity<CachedUserAndConversationData>(CachedUserAndConversationData.PartitionKeyVal, botUser.UserId);
             }
-            catch (RequestFailedException ex)
+            catch (RequestFailedException ex) when (ex.Status == 404)
             {
-                if (ex.ErrorCode == "ResourceNotFound")
-                {
-                    // No worries
-                }
-                else
-                {
-                    throw;
-                }
+                // No worries
             }
 
             if (entityResponse == null)
             {
-                var user = await graphClient.Users[conversationReference.User.AadObjectId].GetAsync(op => op.QueryParameters.Select = ["userPrincipalName"]);
+                string? upn = null;
+                if (botUser.IsAzureAdUserId)
+                {
+                    // Get UPN from Graph
+                    var user = await graphClient.Users[botUser.UserId].GetAsync(op => op.QueryParameters.Select = ["userPrincipalName"]);
+                    upn = user?.UserPrincipalName ?? throw new ArgumentNullException($"No userPrincipalName for {nameof(conversationReference.User.AadObjectId)} '{conversationReference.User.AadObjectId}'");
+                }
 
                 // Not in storage account either. Add there
                 u = new CachedUserAndConversationData()
                 {
-                    RowKey = cacheId,
+                    RowKey = botUser.UserId,
                     ServiceUrl = serviceUrl,
-                    UserPrincipalName = user?.UserPrincipalName ?? throw new ArgumentNullException($"No userPrincipalName for {nameof(conversationReference.User.AadObjectId)} '{conversationReference.User.AadObjectId}'"),
+                    UserPrincipalName = upn,
                 };
                 u.ConversationId = conversationReference.Conversation.Id;
                 client.AddEntity(u);
@@ -110,7 +98,7 @@ public class BotConversationCache : TableStorageManager
         }
 
         // Update memory cache
-        _userIdConversationCache.AddOrUpdate(cacheId, u, (key, newValue) => u);
+        _userIdConversationCache.AddOrUpdate(botUser.UserId, u, (key, newValue) => u);
     }
 
 

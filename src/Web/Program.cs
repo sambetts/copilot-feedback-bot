@@ -41,6 +41,7 @@ public class Program
         builder.Services.AddSingleton<BotAppInstallHelper>();
 
         builder.Services.AddTransient<IBot, FeedbackBot<SurveyDialogue>>();
+        builder.Services.AddSingleton<IConversationResumeHandler, SurveyConversationResumeHandler>();
 
 #if !DEBUG
         builder.Services.AddApplicationInsightsTelemetry();

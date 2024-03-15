@@ -1,5 +1,6 @@
 ﻿using Common.Engine.Config;
 using Microsoft.Bot.Builder;
+using Microsoft.Bot.Builder.Dialogs;
 using Web.Bots.Cards;
 
 namespace Web.Bots;
@@ -19,5 +20,14 @@ public class BotActionsHelper
         // "Hi I'm bot..."
         var introCardAttachment = new BotFirstIntroduction(BotConstants.BotName).GetCardAttachment();
         await turnContext.SendActivityAsync(MessageFactory.Attachment(introCardAttachment), cancellationToken);
+    }
+
+    public async Task SendBotResumeConvo(ITurnContext turnContext, CancellationToken cancellationToken)
+    {
+        // "Hi I'm bot..."
+        var introCardAttachment = new BotResumeConversationIntroduction(BotConstants.BotName).GetCardAttachment();
+        await turnContext.SendActivityAsync(MessageFactory.Attachment(introCardAttachment), cancellationToken);
+
+
     }
 }
