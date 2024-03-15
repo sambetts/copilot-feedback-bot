@@ -6,7 +6,8 @@
       "type": "TextBlock",
       "weight": "bolder",
       "text": "❤️Thaaaaaaaaaanks!❤️",
-      "wrap": true
+      "wrap": true,
+      "horizontalAlignment": "center"
     },
     {
       "type": "Image",

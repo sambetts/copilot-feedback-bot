@@ -192,10 +192,6 @@ public class SurveyDialogue : StoppableDialogue
             // Respond if valid
             if (parsedResponse.ScoreGiven > 0)
             {
-                // Send reaction card to initial survey
-                var responseCard = new BotReactionCard(parsedResponse.Msg, parsedResponse.IsHappy);
-                await stepContext.Context!.SendActivityAsync(MessageFactory.Attachment(responseCard.GetCardAttachment()));
-
                 // Save survey data?
                 var botUser = await BotUserUtils.GetBotUserAsync(stepContext.Context, _botConfig, _graphServiceClient);
                 var chatUserAndConvo = await base.GetCachedUser(botUser);
@@ -240,9 +236,9 @@ public class SurveyDialogue : StoppableDialogue
                     }
                 }
 
-                // Follow-up survey with more details
-                var followUpCard = new SurveyFollowUpQuestionsCard();
-                return await PromptWithCard(stepContext, followUpCard);
+                // Send reaction card to initial survey with follow-up form for more details
+                var responseCard = new BotReactionCard(parsedResponse.Msg, parsedResponse.IsHappy);
+                return await PromptWithCard(stepContext, responseCard);
             }
         }
 
