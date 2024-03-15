@@ -9,11 +9,21 @@ public interface ISurveyManagerDataLoader
     Task<List<BaseCopilotEvent>> GetUnsurveyedActivities(User user, DateTime? from);
     Task<User> GetUser(string upn);
     Task<List<User>> GetUsersWithActivity();
+    
+    Task LogSurveyFollowUp(int surveyIdUpdatedOrCreated, SurveyFollowUpModel surveyFollowUp);
+
+    /// <summary>
+    /// Log survey result for a user, but for no specific copilot event. Returns the ID of the survey response created
+    /// </summary>
     Task<int> LogDisconnectedSurveyResult(int scoreGiven, string userUpn);
-    Task LogSurveyRequested(CommonAuditEvent @event);
+    Task<int> LogSurveyRequested(CommonAuditEvent @event);
 
     Task StopBotheringUser(string upn, DateTime until);
-    Task UpdateSurveyResult(CommonAuditEvent @event, int score);
+
+    /// <summary>
+    /// First response to the survey. Returns the ID of the survey response created
+    /// </summary>
+    Task<int> UpdateSurveyResultWithInitialScore(CommonAuditEvent @event, int score);
 }
 
 public interface ISurveyProcessor

@@ -6,7 +6,9 @@ using Microsoft.Extensions.Logging;
 
 namespace Common.Engine.Surveys;
 
-
+/// <summary>
+/// SQL Server implementation of the survey manager data loader
+/// </summary>
 public class SqlSurveyManagerDataLoader(DataContext db, ILogger<SqlSurveyManagerDataLoader> logger) : ISurveyManagerDataLoader
 {
     public async Task<User> GetUser(string upn)
@@ -51,10 +53,12 @@ public class SqlSurveyManagerDataLoader(DataContext db, ILogger<SqlSurveyManager
         return fileEvents.Cast<BaseCopilotEvent>().Concat(meetingEvents).ToList();
     }
 
-    public Task LogSurveyRequested(CommonAuditEvent @event)
+    public async Task<int> LogSurveyRequested(CommonAuditEvent @event)
     {
-        db.SurveyResponses.Add(new UserSurveyResponse { RelatedEventId = @event.Id, Requested = DateTime.UtcNow, UserID = @event.UserId });
-        return db.SaveChangesAsync();
+        var survey = new UserSurveyResponse { RelatedEventId = @event.Id, Requested = DateTime.UtcNow, UserID = @event.UserId };
+        db.SurveyResponses.Add(survey);
+        await db.SaveChangesAsync();
+        return survey.ID;
     }
 
     public async Task<List<User>> GetUsersWithActivity()
@@ -64,15 +68,24 @@ public class SqlSurveyManagerDataLoader(DataContext db, ILogger<SqlSurveyManager
             .ToListAsync();
     }
 
-    public async Task UpdateSurveyResult(CommonAuditEvent @event, int score)
+    /// <summary>
+    /// Update the survey result with the initial score. Survey record should already exist as when asking the user about an event, we create an empty survey. 
+    /// Returns the ID of the survey response updated.
+    /// </summary>
+    /// <exception cref="ArgumentOutOfRangeException">If for some reason we can't find the existing survey by the copilot event</exception>
+    public async Task<int> UpdateSurveyResultWithInitialScore(CommonAuditEvent @event, int score)
     {
         var response = await db.SurveyResponses.Where(e => e.RelatedEvent == @event).FirstOrDefaultAsync();
         if (response != null)
         {
             response.Rating = score;
             await db.SaveChangesAsync();
+            return response.ID;
         }
+
+        throw new ArgumentOutOfRangeException(nameof(@event));
     }
+
     public async Task<int> LogDisconnectedSurveyResult(int scoreGiven, string userUpn)
     {
         var user = await db.Users.Where(u => u.UserPrincipalName == userUpn).FirstOrDefaultAsync();
@@ -102,4 +115,18 @@ public class SqlSurveyManagerDataLoader(DataContext db, ILogger<SqlSurveyManager
         }
     }
 
+    public async Task LogSurveyFollowUp(int surveyId, SurveyFollowUpModel surveyFollowUp)
+    {
+        var survey = await db.SurveyResponses.Where(e => e.ID == surveyId).FirstOrDefaultAsync();
+        if (survey != null)
+        {
+            survey.CopilotMakesMeMoreProductiveAgreeRating = surveyFollowUp.CopilotMakesMeMoreProductiveAgreeRating.HasValue ? (int)surveyFollowUp.CopilotMakesMeMoreProductiveAgreeRating.Value : null;
+            survey.CopilotImprovesQualityOfWorkAgreeRating = surveyFollowUp.CopilotImprovesQualityOfWorkAgreeRating.HasValue ? (int)surveyFollowUp.CopilotImprovesQualityOfWorkAgreeRating.Value : null;
+            survey.CopilotHelpsWithMundaneTasksAgreeRating = surveyFollowUp.CopilotHelpsWithMundaneTasksAgreeRating.HasValue ? (int)surveyFollowUp.CopilotHelpsWithMundaneTasksAgreeRating.Value : null;
+            survey.CopilotAllowsTaskCompletionFasterAgreeRating = surveyFollowUp.CopilotAllowsTaskCompletionFasterAgreeRating.HasValue ? (int)surveyFollowUp.CopilotAllowsTaskCompletionFasterAgreeRating.Value : null;
+            survey.Comments = surveyFollowUp.Comments;
+            
+            await db.SaveChangesAsync();
+        }
+    }
 }

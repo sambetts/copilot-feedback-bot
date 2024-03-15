@@ -1,6 +1,8 @@
 ﻿using Common.Engine;
 using Common.Engine.Config;
+using Common.Engine.Notifications;
 using Common.Engine.Surveys;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Bot.Builder;
 using Microsoft.Bot.Builder.Dialogs;
 using Microsoft.Bot.Schema;
@@ -34,7 +36,17 @@ public abstract class CommonBotDialogue : ComponentDialog
         return chatUser;
     }
 
-    protected SurveyInitialResponse? GetFrom(string? text)
+    protected async Task<DialogTurnResult> PromptWithCard(WaterfallStepContext stepContext, BaseAdaptiveCard card)
+    {
+        return await PromptWithCard(stepContext, card.GetCardAttachment());
+    }
+    protected async Task<DialogTurnResult> PromptWithCard(WaterfallStepContext stepContext, Attachment attachment)
+    {
+        var opts = new PromptOptions { Prompt = new Activity { Attachments = new List<Attachment>() { attachment }, Type = ActivityTypes.Message } };
+        return await stepContext.PromptAsync(nameof(TextPrompt), opts);
+    }
+
+    protected SurveyInitialResponse? GetSurveyInitialResponseFrom(string? text)
     {
         SurveyInitialResponse? surveyInitialResponse = null;
         if (text != null)
@@ -51,8 +63,7 @@ public abstract class CommonBotDialogue : ComponentDialog
         return surveyInitialResponse;
     }
 
-
-    public async Task GetSurveyManagerService(Func<SurveyManager, Task> func)
+    protected async Task GetSurveyManagerService(Func<SurveyManager, Task> func)
     {
         using (var scope = _services.CreateScope())
         {
@@ -60,7 +71,7 @@ public abstract class CommonBotDialogue : ComponentDialog
             await func(_surveyManager);
         }
     }
-    public async Task<SurveyPendingActivities> GetSurveyPendingActivities(SurveyManager _surveyManager, string chatUserUpn)
+    protected async Task<SurveyPendingActivities> GetSurveyPendingActivities(SurveyManager _surveyManager, string chatUserUpn)
     {
         SurveyPendingActivities userPendingEvents;
         Entities.DB.Entities.User? dbUser = null;
@@ -86,7 +97,7 @@ public abstract class CommonBotDialogue : ComponentDialog
 
     protected async Task SendMsg(ITurnContext context, string msg)
     {
-        await context.SendActivityAsync(MessageFactory.Text(msg, msg, InputHints.ExpectingInput));
+        await context.SendActivityAsync(BuildMsg(msg));
     }
     protected Activity BuildMsg(string msg)
     {

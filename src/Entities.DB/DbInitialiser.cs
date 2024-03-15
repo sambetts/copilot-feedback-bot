@@ -221,7 +221,7 @@ public class DbInitialiser
         var dt = from.AddDays(i * -1);
         var testFileOpResponse = new UserSurveyResponse
         {
-            Comment = $"{responseCommentPrefix} - copilot helped with file {i}",
+            Comments = $"{responseCommentPrefix} - copilot helped with file {i}",
             EstimatedTimeSavedMinutes = rnd.Next(i),
             Rating = rnd.Next(ratingFrom, ratingTo),
             Requested = dt,
@@ -233,7 +233,7 @@ public class DbInitialiser
 
         var testMeetingResponse = new UserSurveyResponse
         {
-            Comment = $"{responseCommentPrefix} - copilot helped with meeting {i}",
+            Comments = $"{responseCommentPrefix} - copilot helped with meeting {i}",
             EstimatedTimeSavedMinutes = 60 - rnd.Next(i),
             Rating = rnd.Next(1, 5),
             Requested = dt,

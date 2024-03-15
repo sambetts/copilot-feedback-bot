@@ -3,6 +3,7 @@ using Common.Engine.Notifications;
 using Entities.DB;
 using Microsoft.Bot.Builder;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Graph;
 using Web.Bots;
 using Web.Bots.Dialogues;
 
@@ -46,9 +47,19 @@ public class Program
 #if !DEBUG
         builder.Services.AddApplicationInsightsTelemetry();
 #endif
-
         var app = builder.Build();
 
+#if DEBUG
+
+        // Clear out the bot cache for dev testing. That way we get 1st time user experience every time.
+        var graph = app.Services.GetRequiredService<GraphServiceClient>();
+        var botCache = new BotConversationCache(graph, config);
+        var allUsers = await botCache.GetCachedUsers();
+        foreach (var user in allUsers)
+        {
+            await botCache.RemoveFromCache(user.RowKey);
+        }
+#endif
 
         // Ensure DB
         var optionsBuilder = new DbContextOptionsBuilder<DataContext>();

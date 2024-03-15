@@ -83,10 +83,10 @@ internal class FakeSurveyManagerDataLoader : ISurveyManagerDataLoader
         return Task.FromResult(new List<User> { new User { UserPrincipalName = "testupn" } });
     }
 
-    public Task UpdateSurveyResult(CommonAuditEvent @event, int score)
+    public Task<int> UpdateSurveyResultWithInitialScore(CommonAuditEvent @event, int score)
     {
         Console.WriteLine($"Fake user updated survey result for {@event.Id} with score {score}");
-        return Task.CompletedTask;
+        return Task.FromResult(1);
     }
 
     public Task StopBotheringUser(string upn, DateTime until)
@@ -99,5 +99,15 @@ internal class FakeSurveyManagerDataLoader : ISurveyManagerDataLoader
     {
         Console.WriteLine($"Fake user logged disconnected survey result with score {scoreGiven}");
         return Task.FromResult(1);
+    }
+
+    public Task LogSurveyFollowUp(int surveyIdUpdatedOrCreated, SurveyFollowUpModel surveyFollowUp)
+    {
+        throw new NotImplementedException();
+    }
+
+    Task<int> ISurveyManagerDataLoader.LogSurveyRequested(CommonAuditEvent @event)
+    {
+        throw new NotImplementedException();
     }
 }

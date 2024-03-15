@@ -18,8 +18,21 @@ public class UserSurveyResponse : UserRelatedEntity
     [Column("estimated_time_saved_minutes")]
     public int? EstimatedTimeSavedMinutes { get; set; }
 
-    [Column("comment")]
-    public string? Comment { get; set; }
+    [Column("comments")]
+    public string? Comments { get; set; }
+
+    // These questions are fixed and come from https://learn.microsoft.com/en-us/viva/insights/org-team-insights/copilot-dashboard#sentiment
+    [Column("copilot_improves_quality_of_work_agree_rating")]
+    public int? CopilotImprovesQualityOfWorkAgreeRating { get; set; }
+
+    [Column("copilot_helps_with_mundane_tasks_agree_rating")]
+    public int? CopilotHelpsWithMundaneTasksAgreeRating { get; set; }
+
+    [Column("copilot_makes_me_more_productive_agree_rating")]
+    public int? CopilotMakesMeMoreProductiveAgreeRating { get; set; }
+
+    [Column("copilot_allows_task_completion_faster_agree_rating")]
+    public int? CopilotAllowsTaskCompletionFasterAgreeRating { get; set; }
 
     [ForeignKey(nameof(RelatedEvent))]
     [Column("related_audit_event_id")]

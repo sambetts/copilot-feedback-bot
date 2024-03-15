@@ -5,6 +5,9 @@ using System.Text.Json.Serialization;
 
 namespace Common.Engine.Surveys;
 
+/// <summary>
+/// Handles all the survey related operations
+/// </summary>
 public class SurveyManager
 {
     private readonly ISurveyManagerDataLoader _dataLoader;

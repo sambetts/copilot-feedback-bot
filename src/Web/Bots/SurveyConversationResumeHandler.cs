@@ -30,7 +30,7 @@ public class SurveyConversationResumeHandler : IConversationResumeHandler
             }
             catch (ArgumentOutOfRangeException)
             {
-                // User doesn't exist, so assume they have no pending events
+                // User doesn't exist in our database, so assume they have no pending events
             }
 
             if (dbUser != null)

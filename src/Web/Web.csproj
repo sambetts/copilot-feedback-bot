@@ -9,6 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Content Remove="Bots\Cards\Templates\BotDiagFinished.json" />
     <Content Remove="Bots\Cards\Templates\BotFirstIntro.json" />
     <Content Remove="Bots\Cards\Templates\BotReactionCommon.json" />
     <Content Remove="Bots\Cards\Templates\BotReactionHappy.json" />
@@ -17,10 +18,13 @@
     <Content Remove="Bots\Cards\Templates\CopilotFileActionSurvey.json" />
     <Content Remove="Bots\Cards\Templates\CopilotTeamsActionSurvey.json" />
     <Content Remove="Bots\Cards\Templates\SurveyCommonBody.json" />
+    <Content Remove="Bots\Cards\Templates\SurveyFollowUpQuestions.json" />
     <Content Remove="Bots\Cards\Templates\SurveyNoAction.json" />
   </ItemGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="Bots\Cards\Templates\BotDiagFinished.json" />
+    <EmbeddedResource Include="Bots\Cards\Templates\SurveyFollowUpQuestions.json" />
     <EmbeddedResource Include="Bots\Cards\Templates\BotFirstIntro.json" />
     <EmbeddedResource Include="Bots\Cards\Templates\BotReactionHappy.json" />
     <EmbeddedResource Include="Bots\Cards\Templates\BotReactionCommon.json" />

@@ -9,6 +9,7 @@ public static class BotConstants
     public static string BotName => "Copilot Feedback Bot";
 
     public static string BotFirstIntroduction => "Web.Bots.Cards.Templates.BotFirstIntro.json";
+    public static string BotDiagFinished => "Web.Bots.Cards.Templates.BotDiagFinished.json";
     public static string BotReactionHappy => "Web.Bots.Cards.Templates.BotReactionHappy.json";
     public static string BotReactionMeh => "Web.Bots.Cards.Templates.BotReactionMeh.json";
     public static string BotResumeConversationIntro => "Web.Bots.Cards.Templates.BotResumeConversationIntro.json";
@@ -17,6 +18,8 @@ public static class BotConstants
     public static string CardFileNameSurveyNoActionCard => "Web.Bots.Cards.Templates.SurveyNoAction.json";
     public static string SurveyCommonBody => "Web.Bots.Cards.Templates.SurveyCommonBody.json";
     public static string BotReactionCommon => "Web.Bots.Cards.Templates.BotReactionCommon.json";
+    public static string SurveyFollowUpQuestions => "Web.Bots.Cards.Templates.SurveyFollowUpQuestions.json";
+
 
     public static string SurveyAnswerRating1 => "Terrible";
     public static string SurveyAnswerRating2 => "Useless";

@@ -32,7 +32,7 @@ public class BotConversationCache : TableStorageManager
         }
     }
 
-    internal async Task RemoveFromCache(string aadObjectId)
+    public async Task RemoveFromCache(string aadObjectId)
     {
         CachedUserAndConversationData? u = null;
         if (_userIdConversationCache.TryGetValue(aadObjectId, out u))
@@ -102,8 +102,9 @@ public class BotConversationCache : TableStorageManager
     }
 
 
-    public List<CachedUserAndConversationData> GetCachedUsers()
+    public async Task<List<CachedUserAndConversationData>> GetCachedUsers()
     {
+        await PopulateMemCacheIfEmpty();
         return _userIdConversationCache.Values.ToList();
     }
 
