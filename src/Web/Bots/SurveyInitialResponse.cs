@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace Web.Bots.Cards;
+namespace Web.Bots;
 
 public class SurveyInitialResponse
 {

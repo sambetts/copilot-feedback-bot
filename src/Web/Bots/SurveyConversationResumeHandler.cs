@@ -6,27 +6,19 @@ using Web.Bots.Cards;
 
 namespace Web.Bots;
 
-
-public class SurveyConversationResumeHandler : IConversationResumeHandler
+public class SurveyConversationResumeHandler(IServiceProvider services) : IConversationResumeHandler
 {
-    private readonly IServiceProvider _services;
-
-    public SurveyConversationResumeHandler(IServiceProvider services)
-    {
-        _services = services;
-    }
-
     public async Task<(BaseCopilotEvent?, Attachment)> GetProactiveConversationResumeConversationCard(string chatUserUpn)
     {
-        using (var scope = _services.CreateScope())
+        using (var scope = services.CreateScope())
         {
-            var _surveyManager = scope.ServiceProvider.GetRequiredService<SurveyManager>();
+            var surveyManager = scope.ServiceProvider.GetRequiredService<SurveyManager>();
 
             SurveyPendingActivities userPendingEvents;
             Entities.DB.Entities.User? dbUser = null;
             try
             {
-                dbUser = await _surveyManager.Loader.GetUser(chatUserUpn);
+                dbUser = await surveyManager.Loader.GetUser(chatUserUpn);
             }
             catch (ArgumentOutOfRangeException)
             {
@@ -35,7 +27,7 @@ public class SurveyConversationResumeHandler : IConversationResumeHandler
 
             if (dbUser != null)
             {
-                userPendingEvents = await _surveyManager.FindNewSurveyEvents(dbUser);
+                userPendingEvents = await surveyManager.FindNewSurveyEvents(dbUser);
             }
             else
             {
@@ -55,6 +47,9 @@ public class SurveyConversationResumeHandler : IConversationResumeHandler
             {
                 // Send feedback card for specific action
                 var nextCopilotEvent = userPendingEvents.GetNext() ?? throw new ArgumentOutOfRangeException("Unexpected null next event");
+
+                // Register that we're sending a survey for this event so we don't repeatedly ask for the same event
+                await surveyManager.Loader.LogSurveyRequested(nextCopilotEvent.Event);
 
                 // Figure out what kind of event it is & what card to send
                 if (nextCopilotEvent is CopilotEventMetadataFile)

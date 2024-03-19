@@ -15,7 +15,8 @@ public static class ActivityImportConstants
     public static string WORKLOAD_AZURE_AD { get { return "AzureActiveDirectory"; } }
 
 
-    public static string COPILOT_CONTEXT_TYPE_TEAMSMEETING { get { return "TeamsMeeting"; } }
+    public static string COPILOT_CONTEXT_TYPE_TEAMS_MEETING { get { return "TeamsMeeting"; } }
+    public static string COPILOT_CONTEXT_TYPE_TEAMS_CHAT { get { return "TeamsChat"; } }
     public static string[] ACTIVITY_CONTENT_TYPES { get { return ["Audit.SharePoint", "Audit.General"]; } }
 
     public const string STAGING_TABLE_VARNAME = "${STAGING_TABLE_ACTIVITY}";

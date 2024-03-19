@@ -98,7 +98,7 @@ public class CopilotTests : AbstractTest
                 new Context
                 {
                     Id = "https://microsoft.teams.com/threads/19:meeting_NDQ4MGRhYjgtMzc5MS00ZWMxLWJiZjEtOTIxZmM5Mzg3ZGFi@thread.v2",   // Needs to be real
-                    Type = ActivityImportConstants.COPILOT_CONTEXT_TYPE_TEAMSMEETING
+                    Type = ActivityImportConstants.COPILOT_CONTEXT_TYPE_TEAMS_MEETING
                 }
             }
         };

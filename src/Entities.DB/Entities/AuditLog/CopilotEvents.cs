@@ -39,7 +39,7 @@ public class CopilotEventMetadataFile : BaseCopilotEvent
 
     public override string GetEventDescription()
     {
-        return $"{Event.Operation.Name} on {FileName?.Name}";
+        return $"{FileName?.Name}";
     }
 }
 
@@ -54,7 +54,7 @@ public class CopilotEventMetadataMeeting : BaseCopilotEvent
 
     public override string GetEventDescription()
     {
-        return $"{Event.Operation.Name} on {OnlineMeeting.Name}";
+        return $"{OnlineMeeting.Name}";
     }
 }
 

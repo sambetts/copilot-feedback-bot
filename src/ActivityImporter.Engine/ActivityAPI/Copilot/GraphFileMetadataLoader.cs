@@ -117,7 +117,8 @@ public class GraphFileMetadataLoader : ICopilotMetadataLoader
         var siteAddress = StringUtils.GetHostAndSiteRelativeUrl(siteUrl);
         if (siteAddress == null)
         {
-            throw new ArgumentException("Invalid copilotDocContextId");
+            // Possibly a Teams reference
+            return null;
         }
 
         // Get drive ID from site ID

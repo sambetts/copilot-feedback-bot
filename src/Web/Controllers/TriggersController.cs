@@ -1,28 +1,20 @@
 ﻿using Common.Engine.Notifications;
 using Common.Engine.Surveys;
+using Entities.DB;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Web.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
-public class TriggersController : ControllerBase
+public class TriggersController(SurveyManager surveyManager, IBotConvoResumeManager botConvoResumeManager, DataContext context, ILogger<TriggersController> logger) : ControllerBase
 {
-    private readonly SurveyManager _surveyManager;
-    private readonly IBotConvoResumeManager _botConvoResumeManager;
-
-    public TriggersController(SurveyManager surveyManager, IBotConvoResumeManager botConvoResumeManager)
-    {
-        _surveyManager = surveyManager;
-        _botConvoResumeManager = botConvoResumeManager;
-    }
-
     // Send surveys to all users that have new survey events, installing bot for users that don't have it
     // POST: api/Triggers/SendSurveys
     [HttpPost(nameof(SendSurveys))]
     public async Task<IActionResult> SendSurveys()
     {
-        var sent = await _surveyManager.FindAndProcessNewSurveyEventsAllUsers();
+        var sent = await surveyManager.FindAndProcessNewSurveyEventsAllUsers();
         return Ok($"Sent {sent} new surveys");
     }
 
@@ -31,7 +23,16 @@ public class TriggersController : ControllerBase
     [HttpPost(nameof(InstallBotForUser))]
     public async Task<IActionResult> InstallBotForUser(string upn)
     {
-        await _botConvoResumeManager.ResumeConversation(upn);
+        await botConvoResumeManager.ResumeConversation(upn);
         return Ok($"Bot installed for user {upn}");
+    }
+
+    // POST: api/Triggers/GenerateFakeActivityFor
+    [HttpPost(nameof(GenerateFakeActivityFor))]
+    public async Task<IActionResult> GenerateFakeActivityFor(string upn)
+    {
+        DbInitialiser.GenerateFakeCopilotFor(upn, context, logger);
+        await context.SaveChangesAsync();
+        return Ok($"Generated fake data for {upn}");
     }
 }

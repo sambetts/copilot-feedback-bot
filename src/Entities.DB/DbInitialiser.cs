@@ -6,6 +6,8 @@ namespace Entities.DB;
 
 public class DbInitialiser
 {
+    const string ACTIVITY_NAME_EDIT_DOC = "Edit Document";
+    const string ACTIVITY_NAME_GET_HIGHLIGHTS = "Get highlights";
     /// <summary>
     /// Ensure created and with base data
     /// </summary>
@@ -24,6 +26,7 @@ public class DbInitialiser
                     UserPrincipalName = defaultUserUPN
                 };
                 context.Users.Add(defaultUser);
+                await context.SaveChangesAsync();
 
                 // Add base lookup data
                 logger.LogInformation("Adding base lookup data");
@@ -40,11 +43,11 @@ public class DbInitialiser
                 context.CopilotActivities.Add(new CopilotActivity { Name = "Draft email", ActivityType = activityTypeEmail });
                 context.CopilotActivities.Add(new CopilotActivity { Name = "Summarise email", ActivityType = activityTypeEmail });
 
-                var editDoc = new CopilotActivity { Name = "Edit Document", ActivityType = activityTypeDoc };       // Need this later
+                var editDoc = new CopilotActivity { Name = ACTIVITY_NAME_EDIT_DOC, ActivityType = activityTypeDoc };       // Need this later
                 context.CopilotActivities.Add(editDoc);
                 context.CopilotActivities.Add(new CopilotActivity { Name = "Summarise Document", ActivityType = activityTypeDoc });
 
-                var getHighlights = new CopilotActivity { Name = "Get highlights", ActivityType = activityTypeMeeting };       // Need this later
+                var getHighlights = new CopilotActivity { Name = ACTIVITY_NAME_GET_HIGHLIGHTS, ActivityType = activityTypeMeeting };       // Need this later
                 context.CopilotActivities.Add(getHighlights);
                 context.CopilotActivities.Add(new CopilotActivity { Name = "Get decisions made", ActivityType = activityTypeMeeting });
                 context.CopilotActivities.Add(new CopilotActivity { Name = "Get open items", ActivityType = activityTypeMeeting });
@@ -54,7 +57,9 @@ public class DbInitialiser
 
 #if DEBUG
                 DirtyTestDataHackInserts(context, logger, editDoc, getHighlights);
+                await context.SaveChangesAsync();
 
+                GenerateFakeCopilotFor(defaultUserUPN, context, logger);
 #endif
                 await context.SaveChangesAsync();
             }
@@ -65,6 +70,48 @@ public class DbInitialiser
         }
     }
 
+    public static void GenerateFakeCopilotFor(string forUpn, DataContext context, ILogger logger)
+    {
+        var editDoc = context.CopilotActivities.FirstOrDefault(a => a.Name == ACTIVITY_NAME_EDIT_DOC)!;
+        var getHighlights = context.CopilotActivities.FirstOrDefault(a => a.Name == ACTIVITY_NAME_GET_HIGHLIGHTS)!;
+
+        var user = context.Users.FirstOrDefault(u => u.UserPrincipalName == forUpn);
+        if (user == null)
+        {
+            logger.LogWarning("No user found for fake copilot data");
+            return;
+        }
+        context.Add(new CopilotEventMetadataMeeting
+        {
+            Event = new CommonAuditEvent
+            {
+                User = user,
+                Id = Guid.NewGuid(),
+                TimeStamp = DateTime.Now.AddDays(-1),
+                Operation = new EventOperation { Name = "Meeting operation " + DateTime.Now.Ticks }
+            },
+            AppHost = "DevBox",
+            OnlineMeeting = new OnlineMeeting { Name = "Weekly Team Sync", MeetingId = "Join Link" }
+        });
+
+        var fileName = $"Test File {DateTime.Now.Ticks}.docx";
+        context.Add(new CopilotEventMetadataFile
+        {
+            Event = new CommonAuditEvent
+            {
+                User = user,
+                Id = Guid.NewGuid(),
+                TimeStamp = DateTime.Now.AddDays(-2),
+                Operation = new EventOperation { Name = "File operation " + DateTime.Now.Ticks }
+            },
+            FileName = new SPEventFileName { Name = fileName },
+            FileExtension = GetSPEventFileExtension("docx"),
+            Url = new Entities.SP.Url { FullUrl = $"https://devbox.sharepoint.com/Docs/{fileName}" },
+            Site = context.Sites.FirstOrDefault()!,
+            AppHost = "DevBox",
+        });
+    }
+
     private static void DirtyTestDataHackInserts(DataContext context, ILogger logger, CopilotActivity editDocCopilotActivity, CopilotActivity getHighlightsCopilotActivity)
     {
         var rnd = new Random();
@@ -73,7 +120,6 @@ public class DbInitialiser
         var testCompany = new CompanyName { Name = "Contoso" };
         var testJobTitle = new UserJobTitle { Name = "Tester" };
         var testOfficeLocation = new UserOfficeLocation { Name = "Test Office" };
-
 
         // Generate some fake departments
         var allDepartments = new List<UserDepartment>();
@@ -125,6 +171,7 @@ public class DbInitialiser
 
         var allMeetingEvents = new List<CopilotEventMetadataMeeting>();     // Needed for when we just add teams event feedback, so we don't have exactly 50-50 meetings and files
 
+        var meetingOp = new EventOperation { Name = "Meeting op" };
         foreach (var m in meetingNames)
         {
             var testMeetingEvent = new CopilotEventMetadataMeeting
@@ -134,7 +181,7 @@ public class DbInitialiser
                     User = allUsers[rnd.Next(0, allUsers.Count - 1)],
                     Id = Guid.NewGuid(),
                     TimeStamp = DateTime.Now.AddDays(allMeetingEvents.Count * -1),
-                    Operation = new EventOperation { Name = m }
+                    Operation = meetingOp
                 },
                 AppHost = "DevBox",
                 OnlineMeeting = new OnlineMeeting { Name = m, MeetingId = "Join Link" }
@@ -160,6 +207,7 @@ public class DbInitialiser
 
         // Fake file events
         var site = new Entities.SP.Site { UrlBase = "https://devbox.sharepoint.com" };
+        var fileOp = context.EventOperations.Where(o=> o.Name.Contains("File op")).FirstOrDefault() ?? new EventOperation { Name = "File op" };
         foreach (var f in filenames)
         {
             var testFileName = new SPEventFileName { Name = f };
@@ -170,7 +218,7 @@ public class DbInitialiser
                     User = allUsers[rnd.Next(0, allUsers.Count - 1)],
                     Id = Guid.NewGuid(),
                     TimeStamp = DateTime.Now.AddDays(allEvents.Count * -2),
-                    Operation = new EventOperation { Name = f }
+                    Operation = fileOp
                 },
                 FileName = testFileName,
                 FileExtension = GetSPEventFileExtension(f.Split('.').Last()),

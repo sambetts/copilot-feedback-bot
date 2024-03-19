@@ -2,6 +2,7 @@
 using Common.DataUtils.Http;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace ActivityImporter.Engine.ActivityAPI.Loaders;
 
@@ -47,7 +48,17 @@ public class ActivityReportWebLoader : IActivityReportLoader<ActivityReportInfo>
         var logs = new WebActivityReportSet();
 
         // A report download can have multiple reports in a Json array.
-        var allReportsData = Newtonsoft.Json.Linq.JArray.Parse(jSonBody);
+        JArray allReportsData;
+        try
+        {
+            allReportsData = JArray.Parse(jSonBody);
+        }
+        catch (JsonReaderException ex)
+        {
+            _telemetry.LogError($"Failed to parse JSON from {metadata.ContentUri}. Error: {ex.Message}");
+            return logs;
+        }
+        
         var reportsArray = allReportsData.Children();
 
         var unknownWorkloads = new List<string>();

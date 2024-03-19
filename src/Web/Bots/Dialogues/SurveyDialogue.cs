@@ -148,9 +148,6 @@ public class SurveyDialogue : StoppableDialogue
                 {
                     // Remember selected copilot action user is being surveyed for
                     await _userState.CreateProperty<BaseCopilotEvent>(CACHE_NAME_NEXT_COPILOT_ACTION_TO_SURVEY).SetAsync(stepContext.Context, nextCopilotEvent);
-
-                    // Register survey request sent so we don't repeatedly ask for the same event
-                    await base.GetSurveyManagerService(async surveyManager => await surveyManager.Loader.LogSurveyRequested(nextCopilotEvent.Event));
                 }
 
                 return await PromptWithCard(stepContext, surveyCard);

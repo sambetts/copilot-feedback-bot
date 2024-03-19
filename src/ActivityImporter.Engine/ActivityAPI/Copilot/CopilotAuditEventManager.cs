@@ -31,7 +31,8 @@ public class CopilotAuditEventManager
         int meetingsCount = 0, filesCount = 0;
         foreach (var context in eventData.Contexts)
         {
-            if (context.Type == ActivityImportConstants.COPILOT_CONTEXT_TYPE_TEAMSMEETING)
+            // There are some known context types for Teams etc. Everything else is assumed to be a file type. 
+            if (context.Type == ActivityImportConstants.COPILOT_CONTEXT_TYPE_TEAMS_MEETING)
             {
                 // We need the user guid to construct the meeting ID
                 var userGuid = await _copilotEventAdaptor.GetUserIdFromUpn(baseOfficeEvent.User.UserPrincipalName);
@@ -50,6 +51,11 @@ public class CopilotAuditEventManager
                 });
 
                 meetingsCount++;
+            }
+            else if (context.Type == ActivityImportConstants.COPILOT_CONTEXT_TYPE_TEAMS_CHAT)
+            {
+                // Todo: save the fact this user chatted to copilot at least
+
             }
             else
             {
