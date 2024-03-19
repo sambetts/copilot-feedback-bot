@@ -61,6 +61,7 @@ These configuration settings are needed in the app service & functions app:
 
 Name | Description
 --------------- | -----------
+AppCatalogTeamAppId | Teams app ID once deployed to the internal catalog
 MicrosoftAppId | ID of bot Azure AD application
 MicrosoftAppPassword | Bot app secret
 WebAppURL | Root URL of app service
