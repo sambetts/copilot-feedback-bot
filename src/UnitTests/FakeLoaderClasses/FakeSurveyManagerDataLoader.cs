@@ -43,7 +43,7 @@ internal class FakeSurveyManagerDataLoader : ISurveyManagerDataLoader
                 FileName = new SPEventFileName { Name = _testsConfig.TeamSitesFileName },
                 FileExtension = new SPEventFileExtension { Name = _testsConfig.TeamSiteFileExtension },
                 Url = new Entities.DB.Entities.SP.Url { FullUrl = _testsConfig.TeamSiteFileUrl },
-                CopilotEvent = new CopilotEvent
+                RelatedChat = new CopilotChat
                 {
                     AppHost = "unit",
                     AuditEvent = new CommonAuditEvent
@@ -59,7 +59,7 @@ internal class FakeSurveyManagerDataLoader : ISurveyManagerDataLoader
         {
             list.Add(new CopilotEventMetadataMeeting
             {
-                CopilotEvent = new CopilotEvent
+                RelatedChat = new CopilotChat
                 {
                     AppHost = "unit",
                     AuditEvent = new CommonAuditEvent

@@ -7,8 +7,8 @@ namespace UnitTests.DB;
 [TestClass]
 public class SqlUtilsTests : AbstractTest
 {
-    const string TABLE_NAME = "tmp_whatever";
-    const string TEMP_TABLE_NAME = "##tmp_whatever";
+    const string TABLE_NAME = "tmp_SqlUtilsTests";
+    const string TEMP_TABLE_NAME = "##tmp_SqlUtilsTests";
     [TestMethod]
     public async Task InsertBatchTests()
     {

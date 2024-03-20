@@ -8,8 +8,8 @@ namespace Entities.DB.Entities.AuditLog;
 /// A copilot interaction event. May not be related to any file or meeting. 
 /// Relates back to a common audit event.
 /// </summary>
-[Table("event_copilot_interaction")]
-public class CopilotEvent : BaseOfficeEvent
+[Table("event_copilot_chats")]
+public class CopilotChat : BaseOfficeEvent
 {
     [Column("app_host")]
     public string AppHost { get; set; } = null!;
@@ -17,22 +17,22 @@ public class CopilotEvent : BaseOfficeEvent
 
 /// <summary>
 /// An event with more data specific to copilot. File/meeting/etc.
-/// Links to common copilot event, which links to common audit event.
+/// Links to common copilot chat event, which links to common audit event.
 /// </summary>
 public abstract class BaseCopilotSpecificEvent
 {
     [Key]
-    [ForeignKey(nameof(CopilotEvent))]
-    [Column("copilot_event_id")]
-    public Guid EventID { get; set; }
+    [ForeignKey(nameof(RelatedChat))]
+    [Column("copilot_chat_id")]
+    public Guid ChatId { get; set; }
 
-    public CopilotEvent CopilotEvent { get; set; } = null!;
+    public CopilotChat RelatedChat { get; set; } = null!;
 
     public abstract string GetEventDescription();
 }
 
 
-[Table("event_meta_copilot_files")]
+[Table("event_copilot_files")]
 public class CopilotEventMetadataFile : BaseCopilotSpecificEvent
 {
     [ForeignKey(nameof(FileExtension))]
@@ -61,7 +61,7 @@ public class CopilotEventMetadataFile : BaseCopilotSpecificEvent
     }
 }
 
-[Table("event_meta_copilot_meetings")]
+[Table("event_copilot_meetings")]
 public class CopilotEventMetadataMeeting : BaseCopilotSpecificEvent
 {
     [ForeignKey(nameof(OnlineMeeting))]

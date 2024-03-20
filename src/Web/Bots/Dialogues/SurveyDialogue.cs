@@ -173,7 +173,7 @@ public class SurveyDialogue : StoppableDialogue
         var result = JsonSerializer.Deserialize<SurveyInitialResponse>(stepContext.Context.Activity.Text);
 
         // Get selected survey, if there is one
-        var userPropNextCopilotEvent = _userState.CreateProperty<CopilotEvent?>(CACHE_NAME_NEXT_COPILOT_ACTION_TO_SURVEY);
+        var userPropNextCopilotEvent = _userState.CreateProperty<CopilotChat?>(CACHE_NAME_NEXT_COPILOT_ACTION_TO_SURVEY);
         var surveyedEvent = await userPropNextCopilotEvent.GetAsync(stepContext.Context, () => null);
 
         // Process response

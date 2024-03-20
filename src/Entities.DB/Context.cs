@@ -42,7 +42,7 @@ public class DataContext : DbContext
     public DbSet<OneDriveUserActivityLog> OneDriveUserActivityLogs { get; set; }
     public DbSet<SharePointUserActivityLog> SharePointUserActivityLogs { get; set; }
 
-    public DbSet<CopilotEvent> CopilotEvents { get; set; }
+    public DbSet<CopilotChat> CopilotChats { get; set; }
     public DbSet<CopilotEventMetadataFile> CopilotEventMetadataFiles { get; set; }
     public DbSet<CopilotEventMetadataMeeting> CopilotEventMetadataMeetings { get; set; }
 

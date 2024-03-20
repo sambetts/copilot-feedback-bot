@@ -22,16 +22,16 @@ public class CopilotTests : AbstractTest
         Assert.IsNotNull(spa.MeetingEvents);
         Assert.IsNull(spa.GetNext());
 
-        var firstFile = new CopilotEventMetadataFile { CopilotEvent = new CopilotEvent { AuditEvent = new CommonAuditEvent { TimeStamp = DateTime.Now.AddDays(-1) } } };
-        var secondFile = new CopilotEventMetadataFile { CopilotEvent = new CopilotEvent { AuditEvent = new CommonAuditEvent { TimeStamp = DateTime.Now } }};
+        var firstFile = new CopilotEventMetadataFile { RelatedChat = new CopilotChat { AuditEvent = new CommonAuditEvent { TimeStamp = DateTime.Now.AddDays(-1) } } };
+        var secondFile = new CopilotEventMetadataFile { RelatedChat = new CopilotChat { AuditEvent = new CommonAuditEvent { TimeStamp = DateTime.Now } }};
         spa.FileEvents.AddRange([firstFile, secondFile]);
 
         Assert.IsTrue(spa.GetNext() == firstFile);
 
 
 
-        var firstMeeting = new CopilotEventMetadataMeeting { CopilotEvent = new CopilotEvent { AuditEvent = new CommonAuditEvent { TimeStamp = DateTime.Now.AddDays(-1) } } };
-        var secondMeeting = new CopilotEventMetadataMeeting { CopilotEvent = new CopilotEvent { AuditEvent = new CommonAuditEvent { TimeStamp = DateTime.Now } } };
+        var firstMeeting = new CopilotEventMetadataMeeting { RelatedChat = new CopilotChat { AuditEvent = new CommonAuditEvent { TimeStamp = DateTime.Now.AddDays(-1) } } };
+        var secondMeeting = new CopilotEventMetadataMeeting { RelatedChat = new CopilotChat { AuditEvent = new CommonAuditEvent { TimeStamp = DateTime.Now } } };
         spa.MeetingEvents.AddRange(new CopilotEventMetadataMeeting[] { firstMeeting, secondMeeting });
 
         Assert.IsTrue(spa.GetNext() == firstMeeting);
@@ -53,8 +53,8 @@ public class CopilotTests : AbstractTest
         Assert.IsNotNull(r.FileEvents[0]);
 
         // Request survey
-        await sm.Loader.LogSurveyRequested(r.MeetingEvents[0].CopilotEvent.AuditEvent);
-        await sm.Loader.LogSurveyRequested(r.FileEvents[0].CopilotEvent.AuditEvent);
+        await sm.Loader.LogSurveyRequested(r.MeetingEvents[0].RelatedChat.AuditEvent);
+        await sm.Loader.LogSurveyRequested(r.FileEvents[0].RelatedChat.AuditEvent);
 
         // Survey again
         var r2 = await sm.FindNewSurveyEvents(testUser);
@@ -139,7 +139,7 @@ public class CopilotTests : AbstractTest
         // Check counts before and after
         var fileEventsPreCount = await _db.CopilotEventMetadataFiles.CountAsync();
         var meetingEventsPreCount = await _db.CopilotEventMetadataMeetings.CountAsync();
-        var allCopilotEventsPreCount = await _db.CopilotEvents.CountAsync();
+        var allCopilotEventsPreCount = await _db.CopilotChats.CountAsync();
 
         // Save common events as they are required for the foreign key - the common event is saved before CopilotAuditEventManager runs on the metadata
         _db.AuditEventsCommon.Add(commonEventDocEdit);
@@ -156,7 +156,7 @@ public class CopilotTests : AbstractTest
         // Verify counts have increased
         var fileEventsPostCount = await _db.CopilotEventMetadataFiles.CountAsync();
         var meetingEventsPostCount = await _db.CopilotEventMetadataMeetings.CountAsync();
-        var allCopilotEventsPostCount = await _db.CopilotEvents.CountAsync();
+        var allCopilotEventsPostCount = await _db.CopilotChats.CountAsync();
 
         Assert.IsTrue(fileEventsPostCount == fileEventsPreCount + 1);
         Assert.IsTrue(meetingEventsPostCount == meetingEventsPreCount + 1);

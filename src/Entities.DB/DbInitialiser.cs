@@ -84,7 +84,7 @@ public class DbInitialiser
         }
         context.Add(new CopilotEventMetadataMeeting
         {
-            CopilotEvent = new CopilotEvent
+            RelatedChat = new CopilotChat
             {
                 AppHost = "DevBox",
                 AuditEvent = new CommonAuditEvent
@@ -102,7 +102,7 @@ public class DbInitialiser
         context.Add(new CopilotEventMetadataFile
         {
 
-            CopilotEvent = new CopilotEvent
+            RelatedChat = new CopilotChat
             {
                 AppHost = "DevBox",
                 AuditEvent = new CommonAuditEvent
@@ -184,7 +184,7 @@ public class DbInitialiser
         {
             var testMeetingEvent = new CopilotEventMetadataMeeting
             {
-                CopilotEvent = new CopilotEvent
+                RelatedChat = new CopilotChat
                 {
                     AppHost = "DevBox",
                     AuditEvent = new CommonAuditEvent
@@ -198,7 +198,7 @@ public class DbInitialiser
                 OnlineMeeting = new OnlineMeeting { Name = m, MeetingId = "Join Link" }
             };
             context.CopilotEventMetadataMeetings.Add(testMeetingEvent);
-            allEvents.Add(testMeetingEvent.CopilotEvent.AuditEvent);
+            allEvents.Add(testMeetingEvent.RelatedChat.AuditEvent);
             allMeetingEvents.Add(testMeetingEvent);
         }
 
@@ -224,7 +224,7 @@ public class DbInitialiser
             var testFileName = new SPEventFileName { Name = f };
             var testFileEvent = new CopilotEventMetadataFile
             {
-                CopilotEvent = new CopilotEvent
+                RelatedChat = new CopilotChat
                 {
                     AppHost = "DevBox",
                     AuditEvent = new CommonAuditEvent
@@ -242,7 +242,7 @@ public class DbInitialiser
                 Site = site,
             };
             context.CopilotEventMetadataFiles.Add(testFileEvent);
-            allEvents.Add(testFileEvent.CopilotEvent.AuditEvent);
+            allEvents.Add(testFileEvent.RelatedChat.AuditEvent);
         }
 
         // Add some "averagely happy" fake survey responses for meetings and documents
@@ -263,7 +263,7 @@ public class DbInitialiser
         {
             AddMeetingAndFileEvent(DateTime.Now, i, 4, 5, context, allUsers, rnd, editDocCopilotActivity, 
                 getHighlightsCopilotActivity, "Very happy",
-                allMeetingEvents[rnd.Next(0, allMeetingEvents.Count - 1)].CopilotEvent.AuditEvent);
+                allMeetingEvents[rnd.Next(0, allMeetingEvents.Count - 1)].RelatedChat.AuditEvent);
         }
     }
 

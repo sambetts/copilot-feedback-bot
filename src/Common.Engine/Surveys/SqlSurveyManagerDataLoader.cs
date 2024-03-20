@@ -39,18 +39,18 @@ public class SqlSurveyManagerDataLoader(DataContext db, ILogger<SqlSurveyManager
             .ToListAsync();
 
         var fileEvents = await db.CopilotEventMetadataFiles
-            .Include(e => e.CopilotEvent)
+            .Include(e => e.RelatedChat)
                 .ThenInclude(BaseCopilotSpecificEvent => BaseCopilotSpecificEvent.AuditEvent)
                     .ThenInclude(e => e.Operation)
             .Include(e => e.FileName)
-            .Where(e => !useRespondedEvents.Contains(e.CopilotEvent.AuditEvent) && e.CopilotEvent.AuditEvent.User == user && (!from.HasValue || e.CopilotEvent.AuditEvent.TimeStamp > from)).ToListAsync();
+            .Where(e => !useRespondedEvents.Contains(e.RelatedChat.AuditEvent) && e.RelatedChat.AuditEvent.User == user && (!from.HasValue || e.RelatedChat.AuditEvent.TimeStamp > from)).ToListAsync();
 
         var meetingEvents = await db.CopilotEventMetadataMeetings
-            .Include(e => e.CopilotEvent)
+            .Include(e => e.RelatedChat)
                 .ThenInclude(BaseCopilotSpecificEvent => BaseCopilotSpecificEvent.AuditEvent)
                     .ThenInclude(e => e.Operation)
             .Include(e => e.OnlineMeeting)
-            .Where(e => !useRespondedEvents.Contains(e.CopilotEvent.AuditEvent) && e.CopilotEvent.AuditEvent.User == user && (!from.HasValue || e.CopilotEvent.AuditEvent.TimeStamp > from)).ToListAsync();
+            .Where(e => !useRespondedEvents.Contains(e.RelatedChat.AuditEvent) && e.RelatedChat.AuditEvent.User == user && (!from.HasValue || e.RelatedChat.AuditEvent.TimeStamp > from)).ToListAsync();
 
         return fileEvents.Cast<BaseCopilotSpecificEvent>().Concat(meetingEvents).ToList();
     }
@@ -66,7 +66,7 @@ public class SqlSurveyManagerDataLoader(DataContext db, ILogger<SqlSurveyManager
     public async Task<List<User>> GetUsersWithActivity()
     {
         return await db.Users
-            .Where(u => db.CopilotEventMetadataFiles.Where(e => e.CopilotEvent.AuditEvent.User == u).Any() || db.CopilotEventMetadataMeetings.Where(e => e.CopilotEvent.AuditEvent.User == u).Any())
+            .Where(u => db.CopilotEventMetadataFiles.Where(e => e.RelatedChat.AuditEvent.User == u).Any() || db.CopilotEventMetadataMeetings.Where(e => e.RelatedChat.AuditEvent.User == u).Any())
             .ToListAsync();
     }
 

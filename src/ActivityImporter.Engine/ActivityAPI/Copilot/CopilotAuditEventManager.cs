@@ -64,12 +64,12 @@ public class CopilotAuditEventManager : IDisposable
             else if (context.Type == ActivityImportConstants.COPILOT_CONTEXT_TYPE_TEAMS_CHAT)
             {
                 // Just a chat with copilot, without any specific meeting or file associated. Log the interaction.
-                var copilotEvent = new CopilotEvent
+                var copilotEvent = new CopilotChat
                 {
                     AuditEventID = baseOfficeEvent.Id,
                     AppHost = eventData.AppHost
                 };
-                _db.CopilotEvents.Add(copilotEvent);
+                _db.CopilotChats.Add(copilotEvent);
             }
             else
             {

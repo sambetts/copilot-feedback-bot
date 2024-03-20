@@ -18,9 +18,9 @@ public class TeamsBotSendSurveyProcessor : ISurveyProcessor
     {
 #if DEBUG
         // Process only the test debug user
-        foreach (var item in activities.FileEvents.Where(e => e.CopilotEvent.AuditEvent.User.UserPrincipalName == _botConfig.TestUPN))
+        foreach (var item in activities.FileEvents.Where(e => e.RelatedChat.AuditEvent.User.UserPrincipalName == _botConfig.TestUPN))
         {
-            await _botConvoResumeManager.ResumeConversation(item.CopilotEvent.AuditEvent.User.UserPrincipalName);
+            await _botConvoResumeManager.ResumeConversation(item.RelatedChat.AuditEvent.User.UserPrincipalName);
         }
 #else
         // Process all users
