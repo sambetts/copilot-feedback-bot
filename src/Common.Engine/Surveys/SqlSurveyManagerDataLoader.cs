@@ -30,7 +30,7 @@ public class SqlSurveyManagerDataLoader(DataContext db, ILogger<SqlSurveyManager
         return null;
     }
 
-    public async Task<List<BaseCopilotEvent>> GetUnsurveyedActivities(User user, DateTime? from)
+    public async Task<List<BaseCopilotSpecificEvent>> GetUnsurveyedActivities(User user, DateTime? from)
     {
         var useRespondedEvents = await db.SurveyResponses
             .Include(e => e.RelatedEvent)
@@ -39,18 +39,20 @@ public class SqlSurveyManagerDataLoader(DataContext db, ILogger<SqlSurveyManager
             .ToListAsync();
 
         var fileEvents = await db.CopilotEventMetadataFiles
-            .Include(e => e.Event)
-                .ThenInclude(e => e.Operation)
+            .Include(e => e.CopilotEvent)
+                .ThenInclude(BaseCopilotSpecificEvent => BaseCopilotSpecificEvent.AuditEvent)
+                    .ThenInclude(e => e.Operation)
             .Include(e => e.FileName)
-            .Where(e => !useRespondedEvents.Contains(e.Event) && e.Event.User == user && (!from.HasValue || e.Event.TimeStamp > from)).ToListAsync();
+            .Where(e => !useRespondedEvents.Contains(e.CopilotEvent.AuditEvent) && e.CopilotEvent.AuditEvent.User == user && (!from.HasValue || e.CopilotEvent.AuditEvent.TimeStamp > from)).ToListAsync();
 
         var meetingEvents = await db.CopilotEventMetadataMeetings
-            .Include(e => e.Event)
-                .ThenInclude(e => e.Operation)
+            .Include(e => e.CopilotEvent)
+                .ThenInclude(BaseCopilotSpecificEvent => BaseCopilotSpecificEvent.AuditEvent)
+                    .ThenInclude(e => e.Operation)
             .Include(e => e.OnlineMeeting)
-            .Where(e => !useRespondedEvents.Contains(e.Event) && e.Event.User == user && (!from.HasValue || e.Event.TimeStamp > from)).ToListAsync();
+            .Where(e => !useRespondedEvents.Contains(e.CopilotEvent.AuditEvent) && e.CopilotEvent.AuditEvent.User == user && (!from.HasValue || e.CopilotEvent.AuditEvent.TimeStamp > from)).ToListAsync();
 
-        return fileEvents.Cast<BaseCopilotEvent>().Concat(meetingEvents).ToList();
+        return fileEvents.Cast<BaseCopilotSpecificEvent>().Concat(meetingEvents).ToList();
     }
 
     public async Task<int> LogSurveyRequested(CommonAuditEvent @event)
@@ -64,7 +66,7 @@ public class SqlSurveyManagerDataLoader(DataContext db, ILogger<SqlSurveyManager
     public async Task<List<User>> GetUsersWithActivity()
     {
         return await db.Users
-            .Where(u => db.CopilotEventMetadataFiles.Where(e => e.Event.User == u).Any() || db.CopilotEventMetadataMeetings.Where(e => e.Event.User == u).Any())
+            .Where(u => db.CopilotEventMetadataFiles.Where(e => e.CopilotEvent.AuditEvent.User == u).Any() || db.CopilotEventMetadataMeetings.Where(e => e.CopilotEvent.AuditEvent.User == u).Any())
             .ToListAsync();
     }
 

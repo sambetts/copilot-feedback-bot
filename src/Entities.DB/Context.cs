@@ -42,6 +42,7 @@ public class DataContext : DbContext
     public DbSet<OneDriveUserActivityLog> OneDriveUserActivityLogs { get; set; }
     public DbSet<SharePointUserActivityLog> SharePointUserActivityLogs { get; set; }
 
+    public DbSet<CopilotEvent> CopilotEvents { get; set; }
     public DbSet<CopilotEventMetadataFile> CopilotEventMetadataFiles { get; set; }
     public DbSet<CopilotEventMetadataMeeting> CopilotEventMetadataMeetings { get; set; }
 
@@ -136,7 +137,7 @@ public class ServiceSqlDbContextFactory : IDesignTimeDbContextFactory<DataContex
     public DataContext CreateDbContext(string[] args)
     {
         var optionsBuilder = new DbContextOptionsBuilder<DataContext>();
-        optionsBuilder.UseSqlServer("Server=(localdb)\\mssqllocaldb;Database=CopernicusDev;Trusted_Connection=True;MultipleActiveResultSets=true");
+        optionsBuilder.UseSqlServer("Server=(localdb)\\mssqllocaldb;Database=CopilotFeedbackDev;Trusted_Connection=True;MultipleActiveResultSets=true");
 
         return new DataContext(optionsBuilder.Options);
     }

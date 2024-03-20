@@ -71,15 +71,15 @@ public class SurveyPendingActivities
         MeetingEvents.AddRange(unsurveyedActivities.MeetingEvents);
     }
 
-    public BaseCopilotEvent? GetNext()
+    public BaseCopilotSpecificEvent? GetNext()
     {
         if (MeetingEvents.Count > 0)
         {
-            return MeetingEvents.OrderBy(e => e.Event.TimeStamp).First();
+            return MeetingEvents.OrderBy(e => e.CopilotEvent.AuditEvent.TimeStamp).First();
         }
         if (FileEvents.Count > 0)
         {
-            return FileEvents.OrderBy(e => e.Event.TimeStamp).First();
+            return FileEvents.OrderBy(e => e.CopilotEvent.AuditEvent.TimeStamp).First();
         }
         return null;
     }

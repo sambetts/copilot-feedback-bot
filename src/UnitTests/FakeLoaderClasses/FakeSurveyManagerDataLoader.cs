@@ -32,22 +32,25 @@ internal class FakeSurveyManagerDataLoader : ISurveyManagerDataLoader
         return Task.FromResult<DateTime?>(null);
     }
 
-    public Task<List<BaseCopilotEvent>> GetUnsurveyedActivities(User user, DateTime? from)
+    public Task<List<BaseCopilotSpecificEvent>> GetUnsurveyedActivities(User user, DateTime? from)
     {
-        var list = new List<BaseCopilotEvent>();
+        var list = new List<BaseCopilotSpecificEvent>();
 
         if (!_ids.Contains(ID_FILE))
         {
             list.Add(new CopilotEventMetadataFile
             {
-                AppHost = "unit",
                 FileName = new SPEventFileName { Name = _testsConfig.TeamSitesFileName },
                 FileExtension = new SPEventFileExtension { Name = _testsConfig.TeamSiteFileExtension },
                 Url = new Entities.DB.Entities.SP.Url { FullUrl = _testsConfig.TeamSiteFileUrl },
-                Event = new CommonAuditEvent
+                CopilotEvent = new CopilotEvent
                 {
-                    Id = ID_FILE,
-                    User = user
+                    AppHost = "unit",
+                    AuditEvent = new CommonAuditEvent
+                    {
+                        Id = ID_FILE,
+                        User = user
+                    }
                 },
             });
         }
@@ -56,11 +59,15 @@ internal class FakeSurveyManagerDataLoader : ISurveyManagerDataLoader
         {
             list.Add(new CopilotEventMetadataMeeting
             {
-                AppHost = "unit",
-                Event = new CommonAuditEvent
+                CopilotEvent = new CopilotEvent
                 {
-                    Id = ID_MEETING,
-                    User = user
+                    AppHost = "unit",
+                    AuditEvent = new CommonAuditEvent
+                    {
+                        Id = ID_MEETING,
+                        User = user,
+                        TimeStamp = DateTime.Now.AddDays(-1)
+                    }
                 },
             });
         }
@@ -70,12 +77,6 @@ internal class FakeSurveyManagerDataLoader : ISurveyManagerDataLoader
     public Task<User> GetUser(string upn)
     {
         return Task.FromResult(new User { UserPrincipalName = upn });
-    }
-
-    public Task LogSurveyRequested(CommonAuditEvent @event)
-    {
-        _ids.Add(@event.Id);
-        return Task.CompletedTask;
     }
 
     public Task<List<User>> GetUsersWithActivity()
@@ -108,6 +109,7 @@ internal class FakeSurveyManagerDataLoader : ISurveyManagerDataLoader
 
     Task<int> ISurveyManagerDataLoader.LogSurveyRequested(CommonAuditEvent @event)
     {
-        throw new NotImplementedException();
+        _ids.Add(@event.Id);
+        return Task.FromResult(1);
     }
 }

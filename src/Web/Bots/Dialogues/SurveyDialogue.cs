@@ -147,7 +147,7 @@ public class SurveyDialogue : StoppableDialogue
                 if (nextCopilotEvent != null)
                 {
                     // Remember selected copilot action user is being surveyed for
-                    await _userState.CreateProperty<BaseCopilotEvent>(CACHE_NAME_NEXT_COPILOT_ACTION_TO_SURVEY).SetAsync(stepContext.Context, nextCopilotEvent);
+                    await _userState.CreateProperty<BaseCopilotSpecificEvent>(CACHE_NAME_NEXT_COPILOT_ACTION_TO_SURVEY).SetAsync(stepContext.Context, nextCopilotEvent);
                 }
 
                 return await PromptWithCard(stepContext, surveyCard);
@@ -173,7 +173,7 @@ public class SurveyDialogue : StoppableDialogue
         var result = JsonSerializer.Deserialize<SurveyInitialResponse>(stepContext.Context.Activity.Text);
 
         // Get selected survey, if there is one
-        var userPropNextCopilotEvent = _userState.CreateProperty<BaseCopilotEvent?>(CACHE_NAME_NEXT_COPILOT_ACTION_TO_SURVEY);
+        var userPropNextCopilotEvent = _userState.CreateProperty<CopilotEvent?>(CACHE_NAME_NEXT_COPILOT_ACTION_TO_SURVEY);
         var surveyedEvent = await userPropNextCopilotEvent.GetAsync(stepContext.Context, () => null);
 
         // Process response
@@ -205,11 +205,11 @@ public class SurveyDialogue : StoppableDialogue
                             // Log survey result for specific copilot event
                             try
                             {
-                                surveyIdUpdatedOrCreated = await surveyManager.Loader.UpdateSurveyResultWithInitialScore(surveyedEvent.Event, parsedResponse.ScoreGiven);
+                                surveyIdUpdatedOrCreated = await surveyManager.Loader.UpdateSurveyResultWithInitialScore(surveyedEvent.AuditEvent, parsedResponse.ScoreGiven);
                             }
                             catch (ArgumentOutOfRangeException)
                             {
-                                _tracer.LogWarning($"Survey record doesn't exist for event {surveyedEvent.Event.Id} to update with score.");
+                                _tracer.LogWarning($"Survey record doesn't exist for event {surveyedEvent.AuditEvent.Id} to update with score.");
                                 // Survey record doesn't exist for this event, for some reason. Ignore and end the conversation.
                             }
                             await userPropNextCopilotEvent.DeleteAsync(stepContext.Context);

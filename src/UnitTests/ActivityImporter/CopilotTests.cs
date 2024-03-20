@@ -22,16 +22,16 @@ public class CopilotTests : AbstractTest
         Assert.IsNotNull(spa.MeetingEvents);
         Assert.IsNull(spa.GetNext());
 
-        var firstFile = new CopilotEventMetadataFile { Event = new CommonAuditEvent { TimeStamp = DateTime.Now.AddDays(-1) } };
-        var secondFile = new CopilotEventMetadataFile { Event = new CommonAuditEvent { TimeStamp = DateTime.Now } };
-        spa.FileEvents.AddRange(new CopilotEventMetadataFile[] { firstFile, secondFile });
+        var firstFile = new CopilotEventMetadataFile { CopilotEvent = new CopilotEvent { AuditEvent = new CommonAuditEvent { TimeStamp = DateTime.Now.AddDays(-1) } } };
+        var secondFile = new CopilotEventMetadataFile { CopilotEvent = new CopilotEvent { AuditEvent = new CommonAuditEvent { TimeStamp = DateTime.Now } }};
+        spa.FileEvents.AddRange([firstFile, secondFile]);
 
         Assert.IsTrue(spa.GetNext() == firstFile);
 
 
 
-        var firstMeeting = new CopilotEventMetadataMeeting { Event = new CommonAuditEvent { TimeStamp = DateTime.Now.AddDays(-1) } };
-        var secondMeeting = new CopilotEventMetadataMeeting { Event = new CommonAuditEvent { TimeStamp = DateTime.Now } };
+        var firstMeeting = new CopilotEventMetadataMeeting { CopilotEvent = new CopilotEvent { AuditEvent = new CommonAuditEvent { TimeStamp = DateTime.Now.AddDays(-1) } } };
+        var secondMeeting = new CopilotEventMetadataMeeting { CopilotEvent = new CopilotEvent { AuditEvent = new CommonAuditEvent { TimeStamp = DateTime.Now } } };
         spa.MeetingEvents.AddRange(new CopilotEventMetadataMeeting[] { firstMeeting, secondMeeting });
 
         Assert.IsTrue(spa.GetNext() == firstMeeting);
@@ -53,8 +53,8 @@ public class CopilotTests : AbstractTest
         Assert.IsNotNull(r.FileEvents[0]);
 
         // Request survey
-        await sm.Loader.LogSurveyRequested(r.MeetingEvents[0].Event);
-        await sm.Loader.LogSurveyRequested(r.FileEvents[0].Event);
+        await sm.Loader.LogSurveyRequested(r.MeetingEvents[0].CopilotEvent.AuditEvent);
+        await sm.Loader.LogSurveyRequested(r.FileEvents[0].CopilotEvent.AuditEvent);
 
         // Survey again
         var r2 = await sm.FindNewSurveyEvents(testUser);
@@ -67,20 +67,14 @@ public class CopilotTests : AbstractTest
     [TestMethod]
     public async Task CopilotEventManagerSaveTest()
     {
+        // Clear events for test
+        _db.CopilotEventMetadataFiles.RemoveRange(_db.CopilotEventMetadataFiles);
+        _db.CopilotEventMetadataMeetings.RemoveRange(_db.CopilotEventMetadataMeetings);
+        _db.CopilotActivities.RemoveRange(_db.CopilotActivities);
+        await _db.SaveChangesAsync();
+
         var copilotEventAdaptor = new CopilotAuditEventManager(_config.ConnectionStrings.SQL, new FakeCopilotEventAdaptor(), _logger);
 
-        var docEvent = new CopilotEventData
-        {
-            AppHost = "test",
-            Contexts = new List<Context>
-            {
-                new Context
-                {
-                    Id = _config.TestCopilotDocContextIdSpSite,
-                    Type = _config.TeamSiteFileExtension
-                }
-            }
-        };
         var commonEventDocEdit = new CommonAuditEvent
         {
             TimeStamp = DateTime.Now,
@@ -88,8 +82,22 @@ public class CopilotTests : AbstractTest
             User = new User { AzureAdId = "test", UserPrincipalName = "test" },
             Id = Guid.NewGuid()
         };
+        var commonEventChat = new CommonAuditEvent
+        {
+            TimeStamp = DateTime.Now,
+            Operation = new EventOperation { Name = "Chat or something" },
+            User = commonEventDocEdit.User,
+            Id = Guid.NewGuid()
+        };
+        var commonEventMeeting = new CommonAuditEvent
+        {
+            TimeStamp = DateTime.Now,
+            Operation = new EventOperation { Name = "Op" },
+            User = new User { AzureAdId = "test", UserPrincipalName = "test" },
+            Id = Guid.NewGuid()
+        };
 
-
+        // Audit metadata for our tests
         var meeting = new CopilotEventData
         {
             AppHost = "test",
@@ -102,38 +110,57 @@ public class CopilotTests : AbstractTest
                 }
             }
         };
-        var commonEventMeeting = new CommonAuditEvent
+        var docEvent = new CopilotEventData
         {
-            TimeStamp = DateTime.Now,
-            Operation = new EventOperation { Name = "Op" },
-            User = new User { AzureAdId = "test", UserPrincipalName = "test" },
-            Id = Guid.NewGuid()
+            AppHost = "test",
+            Contexts = new List<Context>
+            {
+                new Context
+                {
+                    Id = _config.TestCopilotDocContextIdSpSite,
+                    Type = _config.TeamSiteFileExtension
+                }
+            }
+        };
+        var justaChat = new CopilotEventData
+        {
+            AppHost = "test",
+            Contexts = new List<Context>
+            {
+                new Context
+                {
+                    Id = "https://microsoft.teams.com/threads/19:somechatthread@thread.v2",
+                    Type = ActivityImportConstants.COPILOT_CONTEXT_TYPE_TEAMS_CHAT
+                }
+            }
         };
 
-        // Clear events 
-        _db.CopilotEventMetadataFiles.RemoveRange(_db.CopilotEventMetadataFiles);
-        _db.CopilotEventMetadataMeetings.RemoveRange(_db.CopilotEventMetadataMeetings);
-        await _db.SaveChangesAsync();
 
         // Check counts before and after
         var fileEventsPreCount = await _db.CopilotEventMetadataFiles.CountAsync();
         var meetingEventsPreCount = await _db.CopilotEventMetadataMeetings.CountAsync();
+        var allCopilotEventsPreCount = await _db.CopilotEvents.CountAsync();
 
-        // Save common events as they are required for the foreign key
+        // Save common events as they are required for the foreign key - the common event is saved before CopilotAuditEventManager runs on the metadata
         _db.AuditEventsCommon.Add(commonEventDocEdit);
         _db.AuditEventsCommon.Add(commonEventMeeting);
+        _db.AuditEventsCommon.Add(commonEventChat);
         await _db.SaveChangesAsync();
 
         // Save events
         await copilotEventAdaptor.SaveSingleCopilotEventToSql(meeting, commonEventMeeting);
         await copilotEventAdaptor.SaveSingleCopilotEventToSql(docEvent, commonEventDocEdit);
+        await copilotEventAdaptor.SaveSingleCopilotEventToSql(justaChat, commonEventChat);
         await copilotEventAdaptor.CommitAllChanges();
 
         // Verify counts have increased
         var fileEventsPostCount = await _db.CopilotEventMetadataFiles.CountAsync();
         var meetingEventsPostCount = await _db.CopilotEventMetadataMeetings.CountAsync();
+        var allCopilotEventsPostCount = await _db.CopilotEvents.CountAsync();
+
         Assert.IsTrue(fileEventsPostCount == fileEventsPreCount + 1);
         Assert.IsTrue(meetingEventsPostCount == meetingEventsPreCount + 1);
+        Assert.IsTrue(allCopilotEventsPostCount == allCopilotEventsPreCount + 3); // 3 new events - 1 meeting, 1 file, 1 chat
     }
 
     /// <summary>

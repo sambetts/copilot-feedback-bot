@@ -84,32 +84,39 @@ public class DbInitialiser
         }
         context.Add(new CopilotEventMetadataMeeting
         {
-            Event = new CommonAuditEvent
+            CopilotEvent = new CopilotEvent
             {
-                User = user,
-                Id = Guid.NewGuid(),
-                TimeStamp = DateTime.Now.AddDays(-1),
-                Operation = new EventOperation { Name = "Meeting operation " + DateTime.Now.Ticks }
+                AppHost = "DevBox",
+                AuditEvent = new CommonAuditEvent
+                {
+                    User = user,
+                    Id = Guid.NewGuid(),
+                    TimeStamp = DateTime.Now.AddDays(-1),
+                    Operation = new EventOperation { Name = "Meeting operation " + DateTime.Now.Ticks }
+                }
             },
-            AppHost = "DevBox",
             OnlineMeeting = new OnlineMeeting { Name = "Weekly Team Sync", MeetingId = "Join Link" }
         });
 
         var fileName = $"Test File {DateTime.Now.Ticks}.docx";
         context.Add(new CopilotEventMetadataFile
         {
-            Event = new CommonAuditEvent
+
+            CopilotEvent = new CopilotEvent
             {
-                User = user,
-                Id = Guid.NewGuid(),
-                TimeStamp = DateTime.Now.AddDays(-2),
-                Operation = new EventOperation { Name = "File operation " + DateTime.Now.Ticks }
+                AppHost = "DevBox",
+                AuditEvent = new CommonAuditEvent
+                {
+                    User = user,
+                    Id = Guid.NewGuid(),
+                    TimeStamp = DateTime.Now.AddDays(-2),
+                    Operation = new EventOperation { Name = "File operation " + DateTime.Now.Ticks }
+                }
             },
             FileName = new SPEventFileName { Name = fileName },
             FileExtension = await context.SharePointFileExtensions.SingleOrDefaultAsync(e => e.Name == "docx"),
             Url = new Entities.SP.Url { FullUrl = $"https://devbox.sharepoint.com/Docs/{fileName}" },
             Site = context.Sites.FirstOrDefault()!,
-            AppHost = "DevBox",
         });
     }
 
@@ -177,18 +184,21 @@ public class DbInitialiser
         {
             var testMeetingEvent = new CopilotEventMetadataMeeting
             {
-                Event = new CommonAuditEvent
+                CopilotEvent = new CopilotEvent
                 {
-                    User = allUsers[rnd.Next(0, allUsers.Count - 1)],
-                    Id = Guid.NewGuid(),
-                    TimeStamp = DateTime.Now.AddDays(allMeetingEvents.Count * -1),
-                    Operation = meetingOp
+                    AppHost = "DevBox",
+                    AuditEvent = new CommonAuditEvent
+                    {
+                        User = allUsers[rnd.Next(0, allUsers.Count - 1)],
+                        Id = Guid.NewGuid(),
+                        TimeStamp = DateTime.Now.AddDays(allMeetingEvents.Count * -1),
+                        Operation = meetingOp
+                    }
                 },
-                AppHost = "DevBox",
                 OnlineMeeting = new OnlineMeeting { Name = m, MeetingId = "Join Link" }
             };
             context.CopilotEventMetadataMeetings.Add(testMeetingEvent);
-            allEvents.Add(testMeetingEvent.Event);
+            allEvents.Add(testMeetingEvent.CopilotEvent.AuditEvent);
             allMeetingEvents.Add(testMeetingEvent);
         }
 
@@ -214,21 +224,25 @@ public class DbInitialiser
             var testFileName = new SPEventFileName { Name = f };
             var testFileEvent = new CopilotEventMetadataFile
             {
-                Event = new CommonAuditEvent
+                CopilotEvent = new CopilotEvent
                 {
-                    User = allUsers[rnd.Next(0, allUsers.Count - 1)],
-                    Id = Guid.NewGuid(),
-                    TimeStamp = DateTime.Now.AddDays(allEvents.Count * -2),
-                    Operation = fileOp
+                    AppHost = "DevBox",
+                    AuditEvent = new CommonAuditEvent
+                    {
+                        User = allUsers[rnd.Next(0, allUsers.Count - 1)],
+                        Id = Guid.NewGuid(),
+                        TimeStamp = DateTime.Now.AddDays(allEvents.Count * -2),
+                        Operation = fileOp
+                    },
+                    
                 },
                 FileName = testFileName,
                 FileExtension = GetSPEventFileExtension(f.Split('.').Last()),
                 Url = new Entities.SP.Url { FullUrl = $"https://devbox.sharepoint.com/Docs/{f}" },
                 Site = site,
-                AppHost = "DevBox",
             };
             context.CopilotEventMetadataFiles.Add(testFileEvent);
-            allEvents.Add(testFileEvent.Event);
+            allEvents.Add(testFileEvent.CopilotEvent.AuditEvent);
         }
 
         // Add some "averagely happy" fake survey responses for meetings and documents
@@ -247,8 +261,9 @@ public class DbInitialiser
         // Add some "very happy" fake survey responses for meetings and documents. Use Teams events for the feedback
         for (int i = 0; i < 10; i++)
         {
-            AddMeetingAndFileEvent(DateTime.Now, i, 4, 5, context, allUsers, rnd, editDocCopilotActivity, getHighlightsCopilotActivity, "Very happy",
-                allMeetingEvents[rnd.Next(0, allMeetingEvents.Count - 1)].Event);
+            AddMeetingAndFileEvent(DateTime.Now, i, 4, 5, context, allUsers, rnd, editDocCopilotActivity, 
+                getHighlightsCopilotActivity, "Very happy",
+                allMeetingEvents[rnd.Next(0, allMeetingEvents.Count - 1)].CopilotEvent.AuditEvent);
         }
     }
 
@@ -265,7 +280,8 @@ public class DbInitialiser
     }
 
     private static void AddMeetingAndFileEvent(DateTime from, int i, int ratingFrom, int ratingTo, DataContext context, List<User> allUsers,
-        Random rnd, CopilotActivity docActivity, CopilotActivity meetingActivity, string responseCommentPrefix, CommonAuditEvent related)
+        Random rnd, CopilotActivity docActivity, CopilotActivity meetingActivity, string responseCommentPrefix, 
+        CommonAuditEvent related)
     {
         var dt = from.AddDays(i * -1);
         var testFileOpResponse = new UserSurveyResponse

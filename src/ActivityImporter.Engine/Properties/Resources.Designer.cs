@@ -119,7 +119,7 @@ namespace ActivityImporter.Engine.Properties {
         ///				and imports.meeting_name = [name]
         ///		)
         ///
-        ///insert into event_meta_c [rest of string was truncated]&quot;;.
+        ///insert into [event_copil [rest of string was truncated]&quot;;.
         /// </summary>
         internal static string insert_teams_copilot_events_from_staging_table {
             get {

@@ -5,5 +5,5 @@ namespace Common.Engine.Notifications;
 
 public interface IConversationResumeHandler
 {
-    Task<(BaseCopilotEvent?, Attachment)> GetProactiveConversationResumeConversationCard(string chatUserUpn);
+    Task<(BaseCopilotSpecificEvent?, Attachment)> GetProactiveConversationResumeConversationCard(string chatUserUpn);
 }

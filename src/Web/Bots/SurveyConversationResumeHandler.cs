@@ -8,7 +8,7 @@ namespace Web.Bots;
 
 public class SurveyConversationResumeHandler(IServiceProvider services) : IConversationResumeHandler
 {
-    public async Task<(BaseCopilotEvent?, Attachment)> GetProactiveConversationResumeConversationCard(string chatUserUpn)
+    public async Task<(BaseCopilotSpecificEvent?, Attachment)> GetProactiveConversationResumeConversationCard(string chatUserUpn)
     {
         using (var scope = services.CreateScope())
         {
@@ -49,7 +49,7 @@ public class SurveyConversationResumeHandler(IServiceProvider services) : IConve
                 var nextCopilotEvent = userPendingEvents.GetNext() ?? throw new ArgumentOutOfRangeException("Unexpected null next event");
 
                 // Register that we're sending a survey for this event so we don't repeatedly ask for the same event
-                await surveyManager.Loader.LogSurveyRequested(nextCopilotEvent.Event);
+                await surveyManager.Loader.LogSurveyRequested(nextCopilotEvent.CopilotEvent.AuditEvent);
 
                 // Figure out what kind of event it is & what card to send
                 if (nextCopilotEvent is CopilotEventMetadataFile)

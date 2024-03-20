@@ -1,6 +1,8 @@
 ﻿using ActivityImporter.Engine.ActivityAPI.Models;
 using Common.DataUtils.Sql.Inserts;
+using Entities.DB;
 using Entities.DB.Entities.AuditLog;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 namespace ActivityImporter.Engine.ActivityAPI.Copilot;
@@ -8,12 +10,13 @@ namespace ActivityImporter.Engine.ActivityAPI.Copilot;
 /// <summary>
 /// Saves copilot event metadata to SQL
 /// </summary>
-public class CopilotAuditEventManager
+public class CopilotAuditEventManager : IDisposable
 {
     private readonly ICopilotMetadataLoader _copilotEventAdaptor;
     private readonly ILogger _logger;
     private readonly InsertBatch<SPCopilotLogTempEntity> _spCopilotInserts;
     private readonly InsertBatch<TeamsCopilotLogTempEntity> _teamsCopilotInserts;
+    private readonly DataContext _db;
 
     public CopilotAuditEventManager(string connectionString, ICopilotMetadataLoader copilotEventAdaptor, ILogger logger)
     {
@@ -22,12 +25,18 @@ public class CopilotAuditEventManager
 
         _spCopilotInserts = new InsertBatch<SPCopilotLogTempEntity>(connectionString, logger);
         _teamsCopilotInserts = new InsertBatch<TeamsCopilotLogTempEntity>(connectionString, logger);
+
+        var optionsBuilder = new DbContextOptionsBuilder<DataContext>();
+        optionsBuilder.UseSqlServer(connectionString);
+
+        _db = new DataContext(optionsBuilder.Options);
     }
 
     public async Task SaveSingleCopilotEventToSql(CopilotEventData eventData, CommonAuditEvent baseOfficeEvent)
     {
         _logger.LogInformation($"Saving copilot event metadata to SQL for event {baseOfficeEvent.Id}");
 
+        // Save via the high-speed bulk insert code, not EF as we're doing this multi-threaded and we don't want FK conflicts
         int meetingsCount = 0, filesCount = 0;
         foreach (var context in eventData.Contexts)
         {
@@ -54,8 +63,13 @@ public class CopilotAuditEventManager
             }
             else if (context.Type == ActivityImportConstants.COPILOT_CONTEXT_TYPE_TEAMS_CHAT)
             {
-                // Todo: save the fact this user chatted to copilot at least
-
+                // Just a chat with copilot, without any specific meeting or file associated. Log the interaction.
+                var copilotEvent = new CopilotEvent
+                {
+                    AuditEventID = baseOfficeEvent.Id,
+                    AppHost = eventData.AppHost
+                };
+                _db.CopilotEvents.Add(copilotEvent);
             }
             else
             {
@@ -94,7 +108,6 @@ public class CopilotAuditEventManager
         }
     }
 
-
     public async Task CommitAllChanges()
     {
         var docsMergeSql = Properties.Resources.insert_sp_copilot_events_from_staging_table
@@ -106,6 +119,12 @@ public class CopilotAuditEventManager
 
         await _spCopilotInserts.SaveToStagingTable(docsMergeSql);
         await _teamsCopilotInserts.SaveToStagingTable(teamsMergeSql);
+        await _db.SaveChangesAsync();
+    }
+
+    public void Dispose()
+    {
+        _db.Dispose();
     }
 }
 

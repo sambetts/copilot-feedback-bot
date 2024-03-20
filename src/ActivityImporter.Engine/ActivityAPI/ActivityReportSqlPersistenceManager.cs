@@ -154,14 +154,14 @@ public class ActivityReportSqlPersistenceManager : IActivityReportPersistenceMan
                 .Where(e => ids.Contains(e.Id)).ToList();
 
             var spEventsJustSaved = _db.SharePointEvents
-                .Include(spe => spe.Event)
-                .Where(e => ids.Contains(e.EventID)).ToList();
+                .Include(spe => spe.AuditEvent)
+                .Where(e => ids.Contains(e.AuditEventID)).ToList();
 
             // Hack: Add to cache so we can use it in the metadata update.
             // We do this with SP events because of the number of lookups involved, for which the insert script takes care of
             foreach (var e in spEventsJustSaved)
             {
-                saveSession.CachedSpEvents.Add(e.EventID, e);
+                saveSession.CachedSpEvents.Add(e.AuditEventID, e);
             }
 
             foreach (var log in listOfActivitiesSavedToSQL)

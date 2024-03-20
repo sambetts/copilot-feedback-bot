@@ -9,9 +9,9 @@ public abstract class BaseOfficeEvent
     /// Foriegn key for "Event" only
     /// </summary>
     [Key]
-    [ForeignKey(nameof(Event))]
+    [ForeignKey(nameof(AuditEvent))]
     [Column("event_id")]
-    public Guid EventID { get; set; }
+    public Guid AuditEventID { get; set; }
 
-    public CommonAuditEvent Event { get; set; } = null!;
+    public CommonAuditEvent AuditEvent { get; set; } = null!;
 }
