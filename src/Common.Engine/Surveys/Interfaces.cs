@@ -9,7 +9,7 @@ public interface ISurveyManagerDataLoader
     Task<List<BaseCopilotEvent>> GetUnsurveyedActivities(User user, DateTime? from);
     Task<User> GetUser(string upn);
     Task<List<User>> GetUsersWithActivity();
-    
+
     Task LogSurveyFollowUp(int surveyIdUpdatedOrCreated, SurveyFollowUpModel surveyFollowUp);
 
     /// <summary>

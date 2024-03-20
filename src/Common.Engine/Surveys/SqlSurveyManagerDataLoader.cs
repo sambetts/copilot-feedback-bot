@@ -125,7 +125,7 @@ public class SqlSurveyManagerDataLoader(DataContext db, ILogger<SqlSurveyManager
             survey.CopilotHelpsWithMundaneTasksAgreeRating = surveyFollowUp.CopilotHelpsWithMundaneTasksAgreeRating.HasValue ? (int)surveyFollowUp.CopilotHelpsWithMundaneTasksAgreeRating.Value : null;
             survey.CopilotAllowsTaskCompletionFasterAgreeRating = surveyFollowUp.CopilotAllowsTaskCompletionFasterAgreeRating.HasValue ? (int)surveyFollowUp.CopilotAllowsTaskCompletionFasterAgreeRating.Value : null;
             survey.Comments = surveyFollowUp.Comments;
-            
+
             await db.SaveChangesAsync();
         }
     }

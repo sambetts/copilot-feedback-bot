@@ -1,8 +1,6 @@
 ﻿using Common.Engine;
 using Common.Engine.Config;
-using Common.Engine.Notifications;
 using Common.Engine.Surveys;
-using Microsoft.AspNetCore.Http;
 using Microsoft.Bot.Builder;
 using Microsoft.Bot.Builder.Dialogs;
 using Microsoft.Bot.Schema;

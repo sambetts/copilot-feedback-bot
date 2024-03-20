@@ -58,7 +58,7 @@ public class ActivityReportWebLoader : IActivityReportLoader<ActivityReportInfo>
             _telemetry.LogError($"Failed to parse JSON from {metadata.ContentUri}. Error: {ex.Message}");
             return logs;
         }
-        
+
         var reportsArray = allReportsData.Children();
 
         var unknownWorkloads = new List<string>();

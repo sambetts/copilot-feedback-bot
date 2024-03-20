@@ -60,7 +60,7 @@ public class DbInitialiser
                 DirtyTestDataHackInserts(context, logger, editDoc, getHighlights);
                 await context.SaveChangesAsync();
 
-                GenerateFakeCopilotFor(defaultUserUPN, context, logger);
+                await GenerateFakeCopilotFor(defaultUserUPN, context, logger);
 #endif
                 await context.SaveChangesAsync();
             }
@@ -106,14 +106,14 @@ public class DbInitialiser
                 Operation = new EventOperation { Name = "File operation " + DateTime.Now.Ticks }
             },
             FileName = new SPEventFileName { Name = fileName },
-            FileExtension = await context.SharePointFileExtensions.SingleOrDefaultAsync( e=> e.Name == "docx"),
+            FileExtension = await context.SharePointFileExtensions.SingleOrDefaultAsync(e => e.Name == "docx"),
             Url = new Entities.SP.Url { FullUrl = $"https://devbox.sharepoint.com/Docs/{fileName}" },
             Site = context.Sites.FirstOrDefault()!,
             AppHost = "DevBox",
         });
     }
 
-    private static async Task DirtyTestDataHackInserts(DataContext context, ILogger logger, CopilotActivity editDocCopilotActivity, CopilotActivity getHighlightsCopilotActivity)
+    private static void DirtyTestDataHackInserts(DataContext context, ILogger logger, CopilotActivity editDocCopilotActivity, CopilotActivity getHighlightsCopilotActivity)
     {
         var rnd = new Random();
         logger.LogInformation("Adding debugging test data");
@@ -208,7 +208,7 @@ public class DbInitialiser
 
         // Fake file events
         var site = new Entities.SP.Site { UrlBase = "https://devbox.sharepoint.com" };
-        var fileOp = context.EventOperations.Where(o=> o.Name.Contains("File op")).FirstOrDefault() ?? new EventOperation { Name = "File op" };
+        var fileOp = context.EventOperations.Where(o => o.Name.Contains("File op")).FirstOrDefault() ?? new EventOperation { Name = "File op" };
         foreach (var f in filenames)
         {
             var testFileName = new SPEventFileName { Name = f };
