@@ -26,7 +26,7 @@ public class TeamsBotSendSurveyProcessor : ISurveyProcessor
         // Process all users
         foreach (var item in activities.FileEvents)
         {
-            await _botConvoResumeManager.ResumeConversation(item.CopilotEvent.AuditEvent.User.UserPrincipalName);
+            await _botConvoResumeManager.ResumeConversation(item.RelatedChat.AuditEvent.User.UserPrincipalName);
         }
 #endif
 
