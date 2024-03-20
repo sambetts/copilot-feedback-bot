@@ -1,4 +1,4 @@
-name: Build and deploy .NET Core application to Web App stored in secret feedbackbot_AZURE_WEBAPP_NAME using profile
+name: Build and deploy .NET web + webjob to Web App name feedbackbot_AZURE_WEBAPP_NAME using profile found in secret feedbackbot_PUBLISH_PROFILE
 on:
   push:
     branches:
