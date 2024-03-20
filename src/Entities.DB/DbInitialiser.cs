@@ -1,5 +1,6 @@
 ﻿using Entities.DB.Entities;
 using Entities.DB.Entities.AuditLog;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 namespace Entities.DB;
@@ -70,7 +71,7 @@ public class DbInitialiser
         }
     }
 
-    public static void GenerateFakeCopilotFor(string forUpn, DataContext context, ILogger logger)
+    public static async Task GenerateFakeCopilotFor(string forUpn, DataContext context, ILogger logger)
     {
         var editDoc = context.CopilotActivities.FirstOrDefault(a => a.Name == ACTIVITY_NAME_EDIT_DOC)!;
         var getHighlights = context.CopilotActivities.FirstOrDefault(a => a.Name == ACTIVITY_NAME_GET_HIGHLIGHTS)!;
@@ -105,14 +106,14 @@ public class DbInitialiser
                 Operation = new EventOperation { Name = "File operation " + DateTime.Now.Ticks }
             },
             FileName = new SPEventFileName { Name = fileName },
-            FileExtension = GetSPEventFileExtension("docx"),
+            FileExtension = await context.SharePointFileExtensions.SingleOrDefaultAsync( e=> e.Name == "docx"),
             Url = new Entities.SP.Url { FullUrl = $"https://devbox.sharepoint.com/Docs/{fileName}" },
             Site = context.Sites.FirstOrDefault()!,
             AppHost = "DevBox",
         });
     }
 
-    private static void DirtyTestDataHackInserts(DataContext context, ILogger logger, CopilotActivity editDocCopilotActivity, CopilotActivity getHighlightsCopilotActivity)
+    private static async Task DirtyTestDataHackInserts(DataContext context, ILogger logger, CopilotActivity editDocCopilotActivity, CopilotActivity getHighlightsCopilotActivity)
     {
         var rnd = new Random();
         logger.LogInformation("Adding debugging test data");
@@ -251,7 +252,7 @@ public class DbInitialiser
         }
     }
 
-    static List<SPEventFileExtension> _sPEventFileExtensions = new List<SPEventFileExtension>();
+    static List<SPEventFileExtension> _sPEventFileExtensions = new();
     static SPEventFileExtension GetSPEventFileExtension(string ext)
     {
         var e = _sPEventFileExtensions.FirstOrDefault(e => e.Name == ext);

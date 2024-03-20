@@ -9,12 +9,17 @@ namespace Web.Controllers;
 [ApiController]
 public class TriggersController(SurveyManager surveyManager, IBotConvoResumeManager botConvoResumeManager, DataContext context, ILogger<TriggersController> logger) : ControllerBase
 {
+    private readonly SurveyManager _surveyManager = surveyManager;
+    private readonly IBotConvoResumeManager _botConvoResumeManager = botConvoResumeManager;
+    private readonly DataContext _context = context;
+    private readonly ILogger<TriggersController> _logger = logger;
+
     // Send surveys to all users that have new survey events, installing bot for users that don't have it
     // POST: api/Triggers/SendSurveys
     [HttpPost(nameof(SendSurveys))]
     public async Task<IActionResult> SendSurveys()
     {
-        var sent = await surveyManager.FindAndProcessNewSurveyEventsAllUsers();
+        var sent = await _surveyManager.FindAndProcessNewSurveyEventsAllUsers();
         return Ok($"Sent {sent} new surveys");
     }
 
@@ -23,7 +28,7 @@ public class TriggersController(SurveyManager surveyManager, IBotConvoResumeMana
     [HttpPost(nameof(InstallBotForUser))]
     public async Task<IActionResult> InstallBotForUser(string upn)
     {
-        await botConvoResumeManager.ResumeConversation(upn);
+        await _botConvoResumeManager.ResumeConversation(upn);
         return Ok($"Bot installed for user {upn}");
     }
 
@@ -31,8 +36,8 @@ public class TriggersController(SurveyManager surveyManager, IBotConvoResumeMana
     [HttpPost(nameof(GenerateFakeActivityFor))]
     public async Task<IActionResult> GenerateFakeActivityFor(string upn)
     {
-        DbInitialiser.GenerateFakeCopilotFor(upn, context, logger);
-        await context.SaveChangesAsync();
+        await DbInitialiser.GenerateFakeCopilotFor(upn, _context, _logger);
+        await _context.SaveChangesAsync();
         return Ok($"Generated fake data for {upn}");
     }
 }

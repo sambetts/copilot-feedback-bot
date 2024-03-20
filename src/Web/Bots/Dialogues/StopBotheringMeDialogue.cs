@@ -22,17 +22,17 @@ public class StopBotheringMeDialogue : CommonBotDialogue
     /// Setup dialogue flow
     /// </summary>
     public StopBotheringMeDialogue(BotConfig configuration, BotConversationCache botConversationCache, ILogger<StopBotheringMeDialogue> tracer,
-        UserState userState, IServiceProvider services, GraphServiceClient graphServiceClient)
+        IServiceProvider services, GraphServiceClient graphServiceClient)
         : base(nameof(StopBotheringMeDialogue), botConversationCache, configuration, services, graphServiceClient)
     {
         _tracer = tracer;
         AddDialog(new TextPrompt(nameof(TextPrompt)));
 
-        AddDialog(new WaterfallDialog(nameof(WaterfallDialog), new WaterfallStep[]
-        {
+        AddDialog(new WaterfallDialog(nameof(WaterfallDialog),
+        [
             StopBotheringMe,
             SaveDnD
-        }));
+        ]));
         AddDialog(new ChoicePrompt(nameof(ChoicePrompt)));
         InitialDialogId = nameof(WaterfallDialog);
     }
