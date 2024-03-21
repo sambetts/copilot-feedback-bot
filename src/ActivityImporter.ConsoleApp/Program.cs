@@ -47,6 +47,6 @@ using (var db = new DataContext(optionsBuilder.Options))
 
     // Import things
     var t = new ProgramTasks(config, _logger);
-    await t.DownloadAndSaveActivityData();
-    await t.GetGraphTeamsAndUserData();
+    //await t.DownloadAndSaveActivityData();
+    await t.GetGraphData();
 }

@@ -84,6 +84,11 @@ public class ActivityReportWebLoader : IActivityReportLoader<ActivityReportInfo>
                     Console.WriteLine($"Failed to deserialize Copilot log: {logJson}");
                     throw;
                 }
+
+                if (thisAuditLogReport.UserId.ToLower() == "sambetts@M365CP123890.onmicrosoft.com".ToLower())
+                {
+                    File.WriteAllText($"C:\\Users\\sambetts\\Desktop\\Log\\{thisAuditLogReport.Id}.json", logJson);
+                }
             }
             else
             {

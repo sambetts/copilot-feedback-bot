@@ -50,17 +50,6 @@ public class GraphImporter : AbstractApiLoader
 
         var httpClient = new ManualGraphCallClient(_graphAppIndentityOAuthContext, _telemetry);
 
-        var userMetadaTimer = new JobTimer(_telemetry, "User metadata refresh");
-        userMetadaTimer.Start();
-
-        // Update Graph users first
-        var userUpdater = new UserMetadataUpdater(_appConfig, _telemetry, _graphAppIndentityOAuthContext.Creds, httpClient);
-        await userUpdater.InsertAndUpdateDatabaseUsersFromGraph();
-
-        // Track finished event 
-        userMetadaTimer.TrackFinishedEventAndStopTimer(AnalyticsEvent.FinishedSectionImport);
-
-
         var optionsBuilder = new DbContextOptionsBuilder<DataContext>();
         optionsBuilder.UseSqlServer(_appConfig.ConnectionStrings.SQL);
 

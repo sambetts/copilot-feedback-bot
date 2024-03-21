@@ -23,9 +23,9 @@ internal class ProgramTasks
     /// <summary>
     /// Graph data
     /// </summary>
-    internal async Task GetGraphTeamsAndUserData()
+    internal async Task GetGraphData()
     {
-        _logger.LogInformation("Starting Teams & Graph import.");
+        _logger.LogInformation("Starting Graph imports.");
         var graphReader = new GraphImporter(_importConfig, _logger);
 
         try

@@ -15,7 +15,6 @@ public class ActivityWebImporter : ActivityImporter<ActivityReportInfo>
     private ActivityReportWebLoader _activityReportWebLoader;
     private WebContentMetaDataLoader _contentMetaDataLoader;
     private ActivitySubscriptionManager _activitySubscriptionManager;
-    private readonly AzureADAuthConfig _authConfig;
 
     public ActivityWebImporter(AzureADAuthConfig authConfig, ILogger telemetry, int maxSavesPerBatch) : base(telemetry, maxSavesPerBatch)
     {
@@ -24,7 +23,6 @@ public class ActivityWebImporter : ActivityImporter<ActivityReportInfo>
         _activityReportWebLoader = new ActivityReportWebLoader(httpClient, telemetry, authConfig.TenantId);
         _contentMetaDataLoader = new WebContentMetaDataLoader(authConfig.TenantId, telemetry, httpClient);
         _activitySubscriptionManager = new ActivitySubscriptionManager(authConfig.TenantId, telemetry, httpClient, ActivityImportConstants.ACTIVITY_CONTENT_TYPES);
-        _authConfig = authConfig;
     }
 
 
@@ -36,7 +34,6 @@ public class ActivityWebImporter : ActivityImporter<ActivityReportInfo>
         _activityReportWebLoader = new ActivityReportWebLoader(httpClient, telemetry, authConfig.TenantId);
         _contentMetaDataLoader = new WebContentMetaDataLoader(authConfig.TenantId, telemetry, httpClient);
         _activitySubscriptionManager = new ActivitySubscriptionManager(authConfig.TenantId, telemetry, httpClient, ActivityImportConstants.ACTIVITY_CONTENT_TYPES);
-        _authConfig = authConfig;
     }
     public ActivityWebImporter(AzureADAuthConfig authConfig, ConfidentialClientApplicationThrottledHttpClient fakeClient, ILogger telemetry) :
         this(authConfig, fakeClient, telemetry, 1)
