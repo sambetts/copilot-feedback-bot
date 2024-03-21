@@ -21,6 +21,8 @@ This is an automated way to get real feedback from your users about what they th
 All data is stored in your own SQL Server.
 
 ## Usage
+**Quick version**: run the activity import and let the bot do the rest. The functions app will look for users that have used copilot and then survey them.
+
 When deployed, a web-job will read the Office 365 Activity API to determine copilot interactions - whom, and what. It runs automatically once a day. 
 
 A functions app will then find users that have new activity and start a new conversation with them to ask if they could review the activity in question with copilot. 
@@ -31,12 +33,23 @@ If the user doesn't have the bot installed in Teams already, it'll be installed 
 
 If the user says anything to the bot outside the normal dialogue flow, the assumption is they want to leave a copilot review. Surveys don't necessarily have to correlate to a specific interaction, the user can just leave general feedback too. 
 
+### Testing the Bot
+Copilot activity can be faked by sending a **POST** to ```/api/Triggers/GenerateFakeActivityFor?upn={**UPN**}``` (no body required). This will create a fake meeting & file activity for that user.
+
+The bot can also be forced to check and send for pending surveys to be sent everyone with a **POST** to ```/api/Triggers/SendSurveys``` (no body required).
+
+To test-install the bot for a user and force a "hi!" from the bot, independently of if they have pending surveys or not, **POST** to ```/api/Triggers/InstallBotForUser?upn={**UPN**}``` (no body required).
+
+Otherwise, the longer version is to use copilot in a file or team meeting, wait a few minutes, run (manually or automatically) the import job and then wait for the timer function to run the "_FindAndProcessNewSurveyEventsAllUsers_" method.
+
 ## How Does it Work?
 Easy. There's a web-job/process that reads O365 audit events for SharePoint and copilot activity. We read SharePoint to know what happened with files (edit/view/etc) and the copilot to know what users have done with copilot. The information we get from copilot events is limited; "User A chatted to copilot in an app, and it involved this file/meeting", so hence we read SP logs too to link what actually was going on.
 
     Note: SharePoint events that are saved can be filtered so we don't accidentally store sensitive file activity data in table "import_url_filter".
 
 In addition we also read aggregated activity reports for users for OneDrive, SharePoint, Outlook and Teams. That way we can find users that are active in O365 but not using Copilot. 
+
+Finally the solution reads user metadata from Entra ID (Azure AD) copilot activity & satisfaction by demographics can be analysed - job title, office location, etc. 
 
 # Setup Steps
 For this, we assume a decent knowledge of Teams apps deployment, .Net, and Azure PaaS. 
@@ -68,7 +81,7 @@ Create these resources:
 * Required - Service bus namespace.
 * SQL Database (and server) - the PaaS version. You could use an on-premises SQL if you wanted. 
 
-## Configuration
+## Required Configuration
 These configuration settings are needed in the app service & functions app:
 
 Name | Description
