@@ -16,16 +16,27 @@ Copilot events are detected automatically, and each user that used copilot will 
 User responses are stored in a database and visualised in Power BI.
 
 ![User Satisfaction Report](imgs/report2.png)
+This is an automated way to get real feedback from your users about what they think of copilot in Office 365. 
+
+All data is stored in your own SQL Server.
+
 ## Usage
 When deployed, a web-job will read the Office 365 Activity API to determine copilot interactions - whom, and what. It runs automatically once a day. 
 
 A functions app will then find users that have new activity and start a new conversation with them to ask if they could review the activity in question with copilot. 
 
-Once surveyed they won't be surved again for that specific interaction (even if they don't answer). 
+Once surveyed they won't be surveyed again for that specific interaction (even if they don't answer). 
 
 If the user doesn't have the bot installed in Teams already, it'll be installed automatically.
 
 If the user says anything to the bot outside the normal dialogue flow, the assumption is they want to leave a copilot review. Surveys don't necessarily have to correlate to a specific interaction, the user can just leave general feedback too. 
+
+## How Does it Work?
+Easy. There's a web-job/process that reads O365 audit events for SharePoint and copilot activity. We read SharePoint to know what happened with files (edit/view/etc) and the copilot to know what users have done with copilot. The information we get from copilot events is limited; "User A chatted to copilot in an app, and it involved this file/meeting", so hence we read SP logs too to link what actually was going on.
+
+    Note: SharePoint events that are saved can be filtered so we don't accidentally store sensitive file activity data in table "import_url_filter".
+
+In addition we also read aggregated activity reports for users for OneDrive, SharePoint, Outlook and Teams. That way we can find users that are active in O365 but not using Copilot. 
 
 # Setup Steps
 For this, we assume a decent knowledge of Teams apps deployment, .Net, and Azure PaaS. 
@@ -47,14 +58,15 @@ Next, create a Teams app from the template:
 7. Deploy that zip file to your apps catalog in Teams admin.
 8. Once deployed, copy the "App ID" generated. We'll need that ID for bot configuration.
 
-## Create Azure resources. 
+## Create Azure Resources
 Create these resources:
-9. App service & plan. B1 level recommended for small environments. 
-10. Functions app - consumption plan recommended. May require it's own resource-group.
-11. Application Insights (link app service & functions app to it)
-12. Storage account.
-13. Service bus namespace.
-14. SQL Database (and server) - the PaaS version.
+
+* Required - App service & plan. B1 level recommended for small environments. 
+* Required - Functions app - consumption plan recommended. May require it's own resource-group.
+* Application Insights (link app service & functions app to it)
+* Required - Storage account.
+* Required - Service bus namespace.
+* SQL Database (and server) - the PaaS version. You could use an on-premises SQL if you wanted. 
 
 ## Configuration
 These configuration settings are needed in the app service & functions app:
@@ -73,7 +85,9 @@ ConnectionStrings:ServiceBusRoot | Used for async processing of various things
 ConnectionStrings:SQL | The database connection string.
 ConnectionStrings:Storage | Connection string. Conversation cache and other table storage
 
-ConnectionStrings go in their own section in App Services. If any values are missing, the process will crash at start-up. 
+ConnectionStrings go in their own section in App Services (and prefix "ConnectionStrings:" to the name you give there for .Net). 
+
+_Important:_ **If any values are missing, the process will crash at start-up**. Check the local VM application log if you get a start-up error (in Kudu for app services).
 
 ## Application Permissions
 Graph permissions needed (application):
@@ -87,7 +101,8 @@ Office 365 Management APIs
 All these permissions need administrator consent to be effective. 
 
 ## Deploy Solution
-Work in progress, but there is a GitHub action in ".github\workflows\buildwebandwebjob.yml" that will build and deploy the app service & webjob. 
-Requires secret "feedbackbot_PUBLISH_PROFILE". 
+There are GitHub actions in ".github\workflows\" that will build and deploy the app service & webjob in one WF and the functions app in another. 
 
-Otherwise, publish from Visual Studio is also a (temporary) solution. 
+The workflows require secrets "feedbackbot_PUBLISH_PROFILE" and "feedbackbot_AZURE_FUNCTIONS_NAME" for deploy to work. 
+
+Quick hack: publish from Visual Studio is also a (temporary) solution. 
